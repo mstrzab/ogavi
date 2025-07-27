@@ -5,23 +5,38 @@
   font-weight: 400;
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #1a1a1a;
+  padding: 1rem;
 }
 
 .app-container {
   text-align: center;
-  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.status-card {
-  background-color: #333;
-  border-radius: 8px;
-  padding: 1rem;
+.user-card, .error-card, .loading {
+  background-color: #2c2c2c;
+  border-radius: 12px;
+  padding: 1.5rem;
   margin-top: 2rem;
-  display: inline-block;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-code {
-  font-family: monospace;
-  font-weight: bold;
+.error-card {
+  background-color: #442c2c;
+  color: #ff8c8c;
+}
+
+h1 {
+  font-size: 2em;
+  color: #747bff;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+p {
+  margin: 0.5rem 0;
 }

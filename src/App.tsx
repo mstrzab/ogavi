@@ -1,45 +1,83 @@
 // frontend/src/App.tsx
 import { useEffect, useState } from 'react';
+import { useInitData } from '@twa-dev/sdk-react';
 import './App.css';
 
-// ВАЖНО: Замени 'YOUR_SERVER_IP' на реальный IP-адрес твоего сервера,
-// где запущен Docker. Порт должен быть 8001, как мы настроили.
+// ВАЖНО: Замени 'YOUR_SERVER_IP' на реальный IP-адрес твоего сервера
 const BACKEND_URL = "http://91.108.240.117:8001";
 
+// Определяем тип для данных пользователя, которые придут с бэкенда
+interface User {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  rating: number;
+}
+
 function App() {
-  const [backendStatus, setBackendStatus] = useState('Проверяем соединение...');
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const initData = useInitData();
 
   useEffect(() => {
-    // Эта функция выполнится один раз при загрузке приложения
-    const checkBackend = async () => {
+    if (!initData) {
+      setError('Данные авторизации Telegram не найдены.');
+      return;
+    }
+
+    const validateOnBackend = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/healthcheck`);
+        const response = await fetch(`${BACKEND_URL}/api/validate_user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Передаем initData в заголовке
+            'X-Telegram-Init-Data': initData,
+          },
+        });
+
         if (!response.ok) {
-          throw new Error(`Ошибка сети: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `Ошибка: ${response.status}`);
         }
-        const data = await response.json();
-        if (data.status === 'ok') {
-          setBackendStatus('✅ Бэкенд на связи!');
+
+        const userData: User = await response.json();
+        setUser(userData);
+
+      } catch (e) {
+        if (e instanceof Error) {
+          setError(`Ошибка верификации: ${e.message}`);
         } else {
-          setBackendStatus('❌ Бэкенд ответил, но статус не "ok"');
+          setError('Произошла неизвестная ошибка');
         }
-      } catch (error) {
-        console.error("Ошибка при запросе к бэкенду:", error);
-        setBackendStatus('❌ Не удалось подключиться к бэкенду. Проверь URL и CORS.');
       }
     };
 
-    checkBackend();
-  }, []); // Пустой массив зависимостей означает, что эффект выполнится 1 раз
+    validateOnBackend();
+  }, [initData]);
 
   return (
     <div className="app-container">
-      <h1>Добро пожаловать в Viago!</h1>
-      <p>Это наш будущий маркетплейс билетов.</p>
-      <div className="status-card">
-        <p>Статус системы:</p>
-        <code>{backendStatus}</code>
-      </div>
+      <h1>Viago Marketplace</h1>
+      {user && (
+        <div className="user-card">
+          <h2>Добро пожаловать, {user.first_name}!</h2>
+          <p>ID: {user.id}</p>
+          <p>Рейтинг: {user.rating.toFixed(1)}</p>
+        </div>
+      )}
+      {error && (
+        <div className="error-card">
+          <h2>Ошибка</h2>
+          <p>{error}</p>
+        </div>
+      )}
+      {!user && !error && (
+        <div className="loading">
+          <p>Идет верификация пользователя...</p>
+        </div>
+      )}
     </div>
   );
 }
