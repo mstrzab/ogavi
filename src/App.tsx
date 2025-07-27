@@ -1,9 +1,8 @@
 // frontend/src/App.tsx
 import { useEffect, useState } from 'react';
-import { useInitData } from '@telegram-apps/sdk-react';
+import { useRawInitData } from '@telegram-apps/sdk-react'; // Меняем здесь
 import './App.css';
 
-// ВАЖНО: Замени 'YOUR_SERVER_IP' на реальный IP-адрес твоего сервера
 const BACKEND_URL = "http://91.108.240.117:8001";
 
 // Определяем тип для данных пользователя, которые придут с бэкенда
@@ -18,7 +17,7 @@ interface User {
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const initData = useInitData();
+  const initData = useRawInitData();  
 
   useEffect(() => {
     if (!initData) {
