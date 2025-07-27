@@ -1,0 +1,27 @@
+/* frontend/src/App.css */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+}
+
+.app-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.status-card {
+  background-color: #333;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 2rem;
+  display: inline-block;
+}
+
+code {
+  font-family: monospace;
+  font-weight: bold;
+}
