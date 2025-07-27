@@ -1,6 +1,6 @@
 // frontend/src/App.tsx
 import { useEffect, useState } from 'react';
-import { useInitData } from '@twa-dev/sdk-react';
+import { useInitData } from '@twa-apps/sdk-react';
 import './App.css';
 
 // ВАЖНО: Замени 'YOUR_SERVER_IP' на реальный IP-адрес твоего сервера
