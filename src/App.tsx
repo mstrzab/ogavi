@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react'; // Меняем здесь
 import './App.css';
 
-const BACKEND_URL = "http://91.108.240.117:8001";
+const BACKEND_URL = "https://91.108.240.117:8001";
 
 // Определяем тип для данных пользователя, которые придут с бэкенда
 interface User {
