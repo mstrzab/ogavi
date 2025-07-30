@@ -1,6 +1,6 @@
 // viago/frontend/src/App.tsx
 import { useEffect, useState } from 'react';
-import { useInitData } from '@telegram-apps/sdk-react';
+import { useRawInitData } from '@telegram-apps/sdk-react';
 import './App.css'; // Убедитесь, что у вас есть этот файл со стилями
 
 const BACKEND_URL = "https://api.goviago.ru";
@@ -26,7 +26,7 @@ type Page = 'catalog' | 'profile' | 'add_ticket';
 
 // --- Основной компонент ---
 function App() {
-  const initData = useInitData();
+  const initData = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('catalog');
