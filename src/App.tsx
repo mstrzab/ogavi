@@ -149,37 +149,46 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
       return;
     }
 
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    // Проверяем, что файл был выбран
+    const ticketFile = formData.get('ticket_file');
+    if (!ticketFile || !(ticketFile instanceof File) || ticketFile.size === 0) {
+      setFormError("Пожалуйста, выберите файл билета.");
+      return;
+    }
+    
     setSubmitting(true);
     setFormError('');
 
-    const formData = new FormData(event.currentTarget);
-    const ticketData = {
-      event_name: formData.get('event_name'),
-      event_date: formData.get('event_date'),
-      city: formData.get('city'),
-      venue: formData.get('venue'),
-      sector: formData.get('sector') || null,
-      row: formData.get('row') || null,
-      seat: formData.get('seat') || null,
-      price: Number(formData.get('price')),
-    };
-
     try {
+      // FormData сам установит правильный заголовок 'multipart/form-data'.
+      // Нам не нужно указывать Content-Type.
       const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          // Важно НЕ указывать 'Content-Type', браузер сделает это сам с нужным boundary
           'X-Telegram-Init-Data': initDataRaw,
         },
-        body: JSON.stringify(ticketData),
+        body: formData, // Отправляем FormData напрямую
       });
+
       if (!response.ok) {
+        // Пытаемся получить ошибку в формате JSON, как ее отдает FastAPI
         const err = await response.json();
-        throw new Error(err.detail || 'Не удалось создать билет');
+        throw new Error(err.detail || 'Не удалось создать билет. Проверьте введенные данные.');
       }
+      
+      // Если все успешно, вызываем коллбэк для перехода на другую страницу
       onTicketAdded();
+
     } catch (error) {
-      if (error instanceof Error) setFormError(error.message);
+      if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError('Произошла неизвестная ошибка');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -197,6 +206,16 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
         <input name="row" placeholder="Ряд (необязательно)" />
         <input name="seat" placeholder="Место (необязательно)" />
         <input name="price" type="number" step="0.01" placeholder="Цена в рублях" required />
+        
+        <label htmlFor="ticket_file_input">Файл билета (PDF, JPG, PNG):</label>
+        <input 
+          id="ticket_file_input" 
+          name="ticket_file" 
+          type="file" 
+          accept=".pdf,.jpg,.jpeg,.png" 
+          required 
+        />
+        
         <button type="submit" disabled={submitting}>
           {submitting ? 'Отправка...' : 'Выставить на продажу'}
         </button>
