@@ -1,4 +1,4 @@
-// viago/frontend/src/App.tsx
+// viago/frontend/src/App.tsx - v2.0
 import { useEffect, useState } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
 import './App.css';
@@ -19,6 +19,9 @@ interface Ticket {
   city: string;
   venue: string;
   price: number;
+  sector?: string;
+  row?: string;
+  seat?: string;
   seller: User;
 }
 
@@ -34,7 +37,7 @@ function App() {
   // --- Эффект для аутентификации пользователя ---
   useEffect(() => {
     if (!initDataRaw) {
-      setError("Не удалось получить данные для аутентификации от Telegram.");
+      // setError("Не удалось получить данные для аутентификации от Telegram.");
       return;
     }
 
@@ -112,6 +115,7 @@ function CatalogView() {
         <div key={ticket.id} className="ticket-card">
           <h3>{ticket.event_name}</h3>
           <p>{ticket.city}, {new Date(ticket.event_date).toLocaleDateString()}</p>
+          {ticket.sector && <p>Сектор: {ticket.sector} Ряд: {ticket.row} Место: {ticket.seat}</p>}
           <p className="price">{ticket.price} ₽</p>
           <p className="seller">Продавец: {ticket.seller.first_name} (Рейтинг: {ticket.seller.rating.toFixed(1)})</p>
         </div>
@@ -141,8 +145,8 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!initDataRaw) {
-        setFormError("Ошибка: данные пользователя не найдены. Попробуйте перезапустить приложение.");
-        return;
+      setFormError("Ошибка: данные пользователя не найдены. Попробуйте перезапустить приложение.");
+      return;
     }
 
     setSubmitting(true);
@@ -154,9 +158,12 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
       event_date: formData.get('event_date'),
       city: formData.get('city'),
       venue: formData.get('venue'),
+      sector: formData.get('sector') || null,
+      row: formData.get('row') || null,
+      seat: formData.get('seat') || null,
       price: Number(formData.get('price')),
     };
-    
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
         method: 'POST',
@@ -172,7 +179,7 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
       }
       onTicketAdded();
     } catch (error) {
-        if(error instanceof Error) setFormError(error.message);
+      if (error instanceof Error) setFormError(error.message);
     } finally {
       setSubmitting(false);
     }
@@ -186,6 +193,9 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
         <input name="event_date" type="date" required />
         <input name="city" placeholder="Город" required />
         <input name="venue" placeholder="Место проведения" required />
+        <input name="sector" placeholder="Сектор (необязательно)" />
+        <input name="row" placeholder="Ряд (необязательно)" />
+        <input name="seat" placeholder="Место (необязательно)" />
         <input name="price" type="number" step="0.01" placeholder="Цена в рублях" required />
         <button type="submit" disabled={submitting}>
           {submitting ? 'Отправка...' : 'Выставить на продажу'}

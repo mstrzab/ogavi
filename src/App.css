@@ -1,118 +1,199 @@
+/* viago/frontend/src/App.css - v2.0 Yandex Afisha Style */
+
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  color-scheme: light dark;
-  color: var(--tg-theme-text-color);
-  background-color: var(--tg-theme-bg-color);
+  /* Основные цвета, вдохновленные Я.Афишей и адаптированные под Telegram */
+  --color-background: var(--tg-theme-bg-color, #ffffff);
+  --color-secondary-bg: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  --color-text: var(--tg-theme-text-color, #000000);
+  --color-hint: var(--tg-theme-hint-color, #999999);
+  --color-link: var(--tg-theme-link-color, #007aff);
+  --color-primary-accent: #ffde00; /* Яркий желтый, как у Яндекса */
+  --color-primary-accent-text: #000000;
+  --color-destructive: #ff3b30; /* Цвет для ошибок и удалений */
+  --border-radius-s: 8px;
+  --border-radius-m: 12px;
 }
 
+/* Стили для темной темы Telegram */
+body[class*="dark"] {
+  --color-primary-accent-text: #ffffff;
+  --color-destructive: #ff453a;
+}
+
+/* Базовые стили */
 body {
   margin: 0;
-  padding: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overscroll-behavior-y: none; /* Убираем "оттягивание" страницы на iOS */
 }
 
 .app-container {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
+  padding: 16px;
 }
 
+/* Шапка с навигацией */
 header {
-  border-bottom: 1px solid var(--tg-theme-hint-color);
-  padding-bottom: 0.5rem;
-  margin-bottom: 1rem;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
 }
 
-h1 {
-  font-size: 1.5em;
-  margin: 0;
-  color: var(--tg-theme-link-color);
+header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 16px 0;
+    text-align: center;
 }
 
 nav {
-  margin-top: 0.5rem;
   display: flex;
-  gap: 1rem;
+  background-color: var(--color-secondary-bg);
+  border-radius: var(--border-radius-m);
+  padding: 4px;
 }
 
-button {
-  background-color: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
+nav button {
+  flex-grow: 1;
+  padding: 10px;
   border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
+  background-color: transparent;
+  color: var(--color-hint);
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: var(--border-radius-s);
+  transition: all 0.2s ease-in-out;
 }
 
-button:disabled {
-  background-color: var(--tg-theme-hint-color);
-  cursor: not-allowed;
+nav button:disabled {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  cursor: default;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.loading, .error-card {
-  text-align: center;
-  padding: 2rem;
-  color: var(--tg-theme-hint-color);
-}
-
-.error-card {
-  background-color: #ffdddd;
-  color: #d8000c;
-  border-radius: 8px;
-}
-
+/* Карточка билета в каталоге */
 .ticket-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
-.ticket-card, .user-card {
-  background-color: var(--tg-theme-secondary-bg-color);
-  padding: 1rem;
-  border-radius: 12px;
+.ticket-card {
+  background-color: var(--color-secondary-bg);
+  border-radius: var(--border-radius-m);
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+.ticket-card:hover {
+  transform: translateY(-2px);
 }
 
 .ticket-card h3 {
-  margin: 0 0 0.5rem 0;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
 }
 
 .ticket-card p {
   margin: 0;
-  color: var(--tg-theme-hint-color);
+  font-size: 14px;
+  color: var(--color-hint);
 }
 
-.price {
-  font-weight: bold;
-  font-size: 1.2em;
-  margin-top: 0.5rem !important;
-  color: var(--tg-theme-text-color) !important;
+.ticket-card .price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 12px;
+}
+
+.seller {
+  font-size: 12px !important;
+  margin-top: 12px;
+  border-top: 1px solid var(--color-background);
+  padding-top: 8px;
+}
+
+/* Экран профиля */
+.profile-view h2, .add-ticket-view h2 {
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.user-card {
+    background-color: var(--color-secondary-bg);
+    border-radius: var(--border-radius-m);
+    padding: 16px;
+}
+
+.user-card p {
+    margin: 8px 0;
+    font-size: 16px;
 }
 
 .add-ticket-btn {
-    width: 100%;
-    margin-top: 1rem;
-    padding: 15px;
-    font-size: 1em;
+  width: 100%;
+  background-color: var(--color-primary-accent);
+  color: var(--color-primary-accent-text);
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: var(--border-radius-m);
+  margin-top: 24px;
+  border: none;
+  cursor: pointer;
 }
 
+/* Форма добавления билета */
 form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 input {
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--tg-theme-hint-color);
-    background-color: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
-    font-size: 1em;
+  font-size: 16px;
+  padding: 14px;
+  border-radius: var(--border-radius-m);
+  border: 1px solid var(--tg-theme-hint-color);
+  background-color: var(--color-secondary-bg);
+  color: var(--color-text);
 }
 
-.error-text {
-    color: #d8000c;
+input:focus {
+  outline: none;
+  border-color: var(--color-link);
+}
+
+form button[type="submit"] {
+  width: 100%;
+  background-color: var(--color-primary-accent);
+  color: var(--color-primary-accent-text);
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: var(--border-radius-m);
+  margin-top: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Утилиты */
+.loading, .error-card {
+    padding: 40px 20px;
     text-align: center;
+    color: var(--color-hint);
+}
+.error-card {
+    background-color: rgba(255, 59, 48, 0.1);
+    color: var(--color-destructive);
+    border-radius: var(--border-radius-m);
+}
+.error-text {
+    color: var(--color-destructive);
 }
