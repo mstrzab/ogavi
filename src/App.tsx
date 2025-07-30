@@ -1,7 +1,7 @@
 // viago/frontend/src/App.tsx
 import { useEffect, useState } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
-import './App.css'; // Убедитесь, что у вас есть этот файл со стилями
+import './App.css';
 
 const BACKEND_URL = "https://api.goviago.ru";
 
@@ -26,21 +26,21 @@ type Page = 'catalog' | 'profile' | 'add_ticket';
 
 // --- Основной компонент ---
 function App() {
-  const initData = useRawInitData();
+  const initDataRaw = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('catalog');
 
   // --- Эффект для аутентификации пользователя ---
   useEffect(() => {
-    if (!initData || !initData.raw) {
+    if (!initDataRaw) {
       setError("Не удалось получить данные для аутентификации от Telegram.");
       return;
     }
 
     fetch(`${BACKEND_URL}/api/validate_user`, {
       method: 'POST',
-      headers: { 'X-Telegram-Init-Data': initData.raw },
+      headers: { 'X-Telegram-Init-Data': initDataRaw },
     })
       .then(response => {
         if (!response.ok) {
@@ -50,7 +50,7 @@ function App() {
       })
       .then(data => setUser(data))
       .catch(err => setError(err.message));
-  }, [initData]);
+  }, [initDataRaw]);
 
   // --- Отображение в зависимости от состояния ---
   if (error) {
@@ -73,7 +73,7 @@ function App() {
       <main>
         {currentPage === 'catalog' && <CatalogView />}
         {currentPage === 'profile' && <ProfileView user={user} onNavigate={setCurrentPage} />}
-        {currentPage === 'add_ticket' && <AddTicketView onTicketAdded={() => setCurrentPage('catalog')} initDataRaw={initData.raw} />}
+        {currentPage === 'add_ticket' && <AddTicketView onTicketAdded={() => setCurrentPage('catalog')} initDataRaw={initDataRaw} />}
       </main>
     </div>
   );
@@ -84,27 +84,36 @@ function App() {
 function CatalogView() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/tickets/`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Не удалось загрузить билеты');
+        }
+        return res.json();
+      })
       .then((data: Ticket[]) => {
         setTickets(data);
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => setFetchError('Произошла ошибка при загрузке.'))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="loading">Загрузка билетов...</div>;
+  if (fetchError) return <div className="error-card">{fetchError}</div>;
   if (tickets.length === 0) return <div>Нет билетов в продаже.</div>;
 
   return (
     <div className="ticket-list">
+      <h2>Каталог билетов</h2>
       {tickets.map(ticket => (
         <div key={ticket.id} className="ticket-card">
           <h3>{ticket.event_name}</h3>
           <p>{ticket.city}, {new Date(ticket.event_date).toLocaleDateString()}</p>
           <p className="price">{ticket.price} ₽</p>
+          <p className="seller">Продавец: {ticket.seller.first_name} (Рейтинг: {ticket.seller.rating.toFixed(1)})</p>
         </div>
       ))}
     </div>
@@ -125,12 +134,17 @@ function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page
   );
 }
 
-function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => void, initDataRaw: string }) {
+function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => void, initDataRaw: string | undefined }) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!initDataRaw) {
+        setFormError("Ошибка: данные пользователя не найдены. Попробуйте перезапустить приложение.");
+        return;
+    }
+
     setSubmitting(true);
     setFormError('');
 
@@ -172,7 +186,7 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
         <input name="event_date" type="date" required />
         <input name="city" placeholder="Город" required />
         <input name="venue" placeholder="Место проведения" required />
-        <input name="price" type="number" placeholder="Цена в рублях" required />
+        <input name="price" type="number" step="0.01" placeholder="Цена в рублях" required />
         <button type="submit" disabled={submitting}>
           {submitting ? 'Отправка...' : 'Выставить на продажу'}
         </button>
