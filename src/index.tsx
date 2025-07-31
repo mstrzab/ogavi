@@ -9,7 +9,11 @@ const root = ReactDOM.createRoot(document.getElementById('root')!);
 async function main() {
   try {
     // Вызываем init() и ждем его завершения
-    const [webApp, err] = await init();
+    await init();
+
+    const webApp = window.Telegram.WebApp;
+
+    webApp.expand()
 
     if (err) {
        console.error('SDK Init Error', err);
