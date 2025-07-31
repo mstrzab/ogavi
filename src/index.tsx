@@ -9,7 +9,15 @@ const root = ReactDOM.createRoot(document.getElementById('root')!);
 async function main() {
   try {
     // Вызываем init() и ждем его завершения
-    await init();
+    const [webApp, err] = await init();
+
+    if (err) {
+       console.error('SDK Init Error', err);
+       root.render(<div>Error init</div>);
+       return;   
+    }
+
+    webApp.expand();
 
     // После успешной инициализации рендерим наше приложение
     root.render(
