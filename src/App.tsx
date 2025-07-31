@@ -149,8 +149,7 @@ function CatalogView() {
   );
 }
 
-
-function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page) => void }) {
+function ProfileView({ user, onNavigate }: { user: User; onNavigate: (page: Page) => void }) {
   return (
     <div className="profile-view">
       <h2>Профиль</h2>
@@ -158,12 +157,15 @@ function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page
         <p><strong>Имя:</strong> {user.first_name}</p>
         <p><strong>ID:</strong> {user.id}</p>
         <p><strong>Рейтинг:</strong> {user.rating.toFixed(1)}</p>
-	<p><strong>Баланс:</strong> {user.balance.toFixed(2)} ₽</p>
+        <p><strong>Баланс:</strong> {user.balance ? user.balance.toFixed(2) : '0.00'} ₽</p>
       </div>
-      <button className="add-ticket-btn" onClick={() => onNavigate('add_ticket')}>+ Продать билет</button>
+      <button className="add-ticket-btn" onClick={() => onNavigate('add_ticket')}>
+        + Продать билет
+      </button>
     </div>
   );
 }
+
 
 function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => void, initDataRaw: string | undefined }) {
   const [submitting, setSubmitting] = useState(false);
