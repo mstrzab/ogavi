@@ -1,6 +1,6 @@
 // viago/frontend/src/App.tsx - v2.0
 import { useEffect, useState } from 'react';
-import { useRawInitData } from '@telegram-apps/sdk-react';
+import { useRawInitData, useViewport } from '@telegram-apps/sdk-react';
 import './App.css';
 
 const BACKEND_URL = "https://api.goviago.ru";
@@ -30,12 +30,18 @@ type Page = 'catalog' | 'profile' | 'add_ticket';
 // --- Основной компонент ---
 function App() {
   const initDataRaw = useRawInitData();
+  const viewport = useViewport();
+
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('catalog');
 
   // --- Эффект для аутентификации пользователя ---
   useEffect(() => {
+
+    if (viewport) {
+        viewport.expand();
+    }
     if (!initDataRaw) {
       // setError("Не удалось получить данные для аутентификации от Telegram.");
       return;
@@ -113,15 +119,26 @@ function CatalogView() {
       <h2>Каталог билетов</h2>
       {tickets.map(ticket => (
         <div key={ticket.id} className="ticket-card">
-          <h3>{ticket.event_name}</h3>
-          <p>{ticket.city}, {new Date(ticket.event_date).toLocaleDateString()}</p>
-          {ticket.sector && <p>Сектор: {ticket.sector} Ряд: {ticket.row} Место: {ticket.seat}</p>}
-          <p className="price">{ticket.price} ₽</p>
-          <p className="seller">Продавец: {ticket.seller.first_name} (Рейтинг: {ticket.seller.rating.toFixed(1)})</p>
+          <div className="ticket-card-main">
+              <h3>{ticket.event_name}</h3>
+              <p className="venue">{ticket.city}, {ticket.venue}</p>
+              <p className="date">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              {(ticket.sector || ticket.row || ticket.seat) &&
+                  <p className="seat-info">
+                      {ticket.sector && `Сектор ${ticket.sector}`}
+                      {ticket.row && ` • Ряд ${ticket.row}`}
+                      {ticket.seat && ` • Место ${ticket.seat}`}
+                  </p>
+              }
+          </div>
+          <div className="ticket-card-aside">
+              <p className="price">{ticket.price} ₽</p>
+              <button className="buy-button">Купить</button>
+          </div>
         </div>
       ))}
     </div>
-  );
+   );
 }
 
 function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page) => void }) {

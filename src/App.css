@@ -197,3 +197,41 @@ form button[type="submit"] {
 .error-text {
     color: var(--color-destructive);
 }
+
+
+
+/* ... существующие стили ... */
+
+/* Улучшенная карточка билета */
+.ticket-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.ticket-card-main {
+    flex-grow: 1;
+}
+
+.ticket-card-aside {
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+.venue, .date, .seat-info {
+    font-size: 14px;
+    color: var(--color-hint);
+    margin: 4px 0 0 0 !important;
+}
+
+.seat-info {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.buy-button {
+    background-color: var(--color-primary-accent);
+    color: var(--color-primary-accent-text);
+    margin-top: 8px;
+}
