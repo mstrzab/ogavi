@@ -1,6 +1,6 @@
 // viago/frontend/src/App.tsx - v2.0
 import { useEffect, useState } from 'react';
-import { useRawInitData, useViewport } from '@telegram-apps/sdk-react';
+import { useRawInitData, useWebApp } from '@telegram-apps/sdk-react';
 import './App.css';
 
 const BACKEND_URL = "https://api.goviago.ru";
@@ -30,7 +30,7 @@ type Page = 'catalog' | 'profile' | 'add_ticket';
 // --- Основной компонент ---
 function App() {
   const initDataRaw = useRawInitData();
-  const viewport = useViewport();
+  const WebApp = useWebApp();
 
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +39,8 @@ function App() {
   // --- Эффект для аутентификации пользователя ---
   useEffect(() => {
 
-    if (viewport) {
-        viewport.expand();
+    if (WebApp){
+        WebApp.expand();
     }
     if (!initDataRaw) {
       // setError("Не удалось получить данные для аутентификации от Telegram.");
