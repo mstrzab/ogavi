@@ -9,6 +9,13 @@ interface User {
   id: number;
   first_name: string;
   rating: number;
+  balance: number;
+}
+
+interface UserBase {
+  id: number;
+  first_name: string;
+  rating: number;
 }
 
 interface Ticket {
@@ -21,7 +28,8 @@ interface Ticket {
   sector?: string;
   row?: string;
   seat?: string;
-  seller: User;
+  status: string; 
+  seller: UserBase;
 }
 
 type Page = 'catalog' | 'profile' | 'add_ticket';
