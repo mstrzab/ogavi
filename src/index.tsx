@@ -1,10 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { init, retrieveLaunchParams } from '@telegram-apps/sdk-react';
 import App from './App.tsx';
 import './index.css';
 
-// Расширяем стандартный тип Window, чтобы TypeScript знал о window.Telegram
+// Расширяем стандартный тип Window
 declare global {
   interface Window {
     Telegram: any;
@@ -13,33 +12,39 @@ declare global {
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
-// Сначала проверяем, есть ли вообще параметры запуска (запущены ли мы в Telegram)
-try {
-  retrieveLaunchParams();
-
-  // Если код дошел до сюда, значит мы в Telegram. Инициализируем SDK.
-  init();
-  
-  // Сразу после init, просим расширить окно
-  window.Telegram.WebApp.expand();
-
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-
-} catch (e) {
-  // Этот блок сработает, если приложение открыто в обычном браузере
-  // Можно показать заглушку или сообщение об ошибке
-  const rootElement = document.getElementById('root');
-  if (rootElement) {
-    rootElement.innerHTML = `
-      <div style="font-family: sans-serif; text-align: center; padding: 20px;">
-        <h3>Oops</h3>
-        <p>Это приложение предназначено для запуска внутри Telegram.</p>
-      </div>
-    `;
+async function startApp() {
+  // Даем SDK время на инициализацию (до 2 секунд)
+  for (let i = 0; i < 10; i++) {
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+      break; // SDK готово, выходим из цикла
+    }
+    await new Promise(resolve => setTimeout(resolve, 200)); // Ждем 200 мс
   }
-  console.error(e);
+
+  // Проверяем еще раз после ожидания
+  if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) {
+    console.error("Telegram Web App script did not load.");
+    root.render(
+        <div style={{fontFamily: "sans-serif", textAlign: "center", padding: "20px"}}>
+          <h3>Ошибка</h3>
+          <p>Не удалось загрузить компоненты Telegram. Попробуйте перезапустить приложение.</p>
+        </div>
+    );
+    return;
+  }
+
+  // Если все хорошо, запускаем приложение
+  try {
+    window.Telegram.WebApp.expand();
+
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  } catch (e) {
+    console.error(e);
+  }
 }
+
+startApp();
