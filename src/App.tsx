@@ -83,7 +83,7 @@ function App() {
       <main>
         {currentPage === 'catalog' && <CatalogView />}
         {currentPage === 'profile' && <ProfileView user={user} onNavigate={setCurrentPage} />}
-        {currentPage === 'add_ticket' && <AddTicketView onTicketAdded={() => setCurrentPage('catalog')} initDataRaw={initDataRaw} />}
+        {currentPage === 'add_ticket' && initDataRaw && <AddTicketView onTicketAdded={() => setCurrentPage('catalog')} initDataRaw={initDataRaw} />}
       </main>
     </div>
   );
@@ -166,49 +166,39 @@ function ProfileView({ user, onNavigate }: { user: User; onNavigate: (page: Page
   );
 }
 
-
-function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => void, initDataRaw: string | undefined }) {
+function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => void; initDataRaw: string; }) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!initDataRaw) {
-      setFormError("Ошибка: данные пользователя не найдены. Попробуйте перезапустить приложение.");
-      return;
-    }
+    setSubmitting(true);
+    setFormError('');
 
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    // Проверяем, что файл был выбран
     const ticketFile = formData.get('ticket_file');
     if (!ticketFile || !(ticketFile instanceof File) || ticketFile.size === 0) {
       setFormError("Пожалуйста, выберите файл билета.");
+      setSubmitting(false);
       return;
     }
-    
-    setSubmitting(true);
-    setFormError('');
 
     try {
-      // FormData сам установит правильный заголовок 'multipart/form-data'.
-      // Нам не нужно указывать Content-Type.
       const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
         method: 'POST',
         headers: {
-          // Важно НЕ указывать 'Content-Type', браузер сделает это сам с нужным boundary
           'X-Telegram-Init-Data': initDataRaw,
         },
-        body: formData, // Отправляем FormData напрямую
+        body: formData,
       });
 
       if (!response.ok) {
-        // Пытаемся получить ошибку в формате JSON, как ее отдает FastAPI
-        const err = await response.json();
-        throw new Error(err.detail || 'Не удалось создать билет. Проверьте введенные данные.');
+        const err = await response.json().catch(() => ({ detail: 'Не удалось обработать ошибку сервера' }));
+        throw new Error(err.detail || 'Не удалось создать билет.');
       }
-      
+
       // Если все успешно, вызываем коллбэк для перехода на другую страницу
       onTicketAdded();
 
@@ -253,5 +243,6 @@ function AddTicketView({ onTicketAdded, initDataRaw }: { onTicketAdded: () => vo
     </div>
   );
 }
+
 
 export default App;
