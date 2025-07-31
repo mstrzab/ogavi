@@ -5,7 +5,6 @@ import './App.css';
 
 const BACKEND_URL = "https://api.goviago.ru";
 
-// --- Типы данных ---
 interface User {
   id: number;
   first_name: string;
@@ -27,7 +26,6 @@ interface Ticket {
 
 type Page = 'catalog' | 'profile' | 'add_ticket';
 
-// --- Основной компонент ---
 function App() {
   const initDataRaw = useRawInitData();
 
@@ -35,7 +33,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('catalog');
 
-  // --- Эффект для аутентификации пользователя ---
   useEffect(() => {
 
     if (!initDataRaw) {
@@ -84,58 +81,66 @@ function App() {
   );
 }
 
-// --- Компоненты для разных экранов ---
 
 function CatalogView() {
+  const initDataRaw = useRawInitData();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchTickets = () => {
+    setLoading(true);
+    setError(null);
     fetch(`${BACKEND_URL}/api/tickets/`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Не удалось загрузить билеты');
-        }
-        return res.json();
-      })
-      .then((data: Ticket[]) => {
-        setTickets(data);
-      })
-      .catch(() => setFetchError('Произошла ошибка при загрузке.'))
+      .then(res => res.json())
+      .then((data: Ticket[]) => setTickets(data))
+      .catch(() => setError('Ошибка загрузки билетов'))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(fetchTickets, []);
+
+  const handleBuy = async (ticketId: number) => {
+    if (!initDataRaw) {
+      alert("Ошибка: данные пользователя не найдены.");
+      return;
+    }
+    if (!confirm("Вы уверены, что хотите купить этот билет?")) return;
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/tickets/${ticketId}/buy`, {
+        method: 'POST',
+        headers: { 'X-Telegram-Init-Data': initDataRaw },
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Не удалось купить билет');
+      }
+      alert("Билет успешно куплен!");
+      fetchTickets(); // Обновляем список билетов
+    } catch (err) {
+      if (err instanceof Error) alert(`Ошибка: ${err.message}`);
+    }
+  };
 
   if (loading) return <div className="loading">Загрузка билетов...</div>;
-  if (fetchError) return <div className="error-card">{fetchError}</div>;
-  if (tickets.length === 0) return <div>Нет билетов в продаже.</div>;
+  if (error) return <div className="error-card">{error}</div>;
+  const availableTickets = tickets.filter(t => t.status === 'available');
+  if (availableTickets.length === 0) return <div>Нет билетов в продаже.</div>;
 
   return (
     <div className="ticket-list">
       <h2>Каталог билетов</h2>
-      {tickets.map(ticket => (
+      {availableTickets.map(ticket => (
         <div key={ticket.id} className="ticket-card">
-          <div className="ticket-card-main">
-              <h3>{ticket.event_name}</h3>
-              <p className="venue">{ticket.city}, {ticket.venue}</p>
-              <p className="date">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-              {(ticket.sector || ticket.row || ticket.seat) &&
-                  <p className="seat-info">
-                      {ticket.sector && `Сектор ${ticket.sector}`}
-                      {ticket.row && ` • Ряд ${ticket.row}`}
-                      {ticket.seat && ` • Место ${ticket.seat}`}
-                  </p>
-              }
-          </div>
-          <div className="ticket-card-aside">
-              <p className="price">{ticket.price} ₽</p>
-              <button className="buy-button">Купить</button>
-          </div>
+          {/* ... инфо о билете ... */}
+          <button className="buy-btn" onClick={() => handleBuy(ticket.id)}>Купить за {ticket.price} ₽</button>
         </div>
       ))}
     </div>
-   );
+  );
 }
+
 
 function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page) => void }) {
   return (
@@ -145,6 +150,7 @@ function ProfileView({ user, onNavigate }: { user: User, onNavigate: (page: Page
         <p><strong>Имя:</strong> {user.first_name}</p>
         <p><strong>ID:</strong> {user.id}</p>
         <p><strong>Рейтинг:</strong> {user.rating.toFixed(1)}</p>
+	<p><strong>Баланс:</strong> {user.balance.toFixed(2)} ₽</p>
       </div>
       <button className="add-ticket-btn" onClick={() => onNavigate('add_ticket')}>+ Продать билет</button>
     </div>
