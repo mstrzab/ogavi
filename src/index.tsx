@@ -1,46 +1,45 @@
+// viago/frontend/src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { init } from '@telegram-apps/sdk-react';
 import App from './App.tsx';
 import './index.css';
 
-// Расширение типа Window для TypeScript
-declare global {
-  interface Window {
-    Telegram: any;
-  }
+// Получаем корневой элемент, куда будем рендерить приложение
+const rootElement = document.getElementById('root');
+
+// Убеждаемся, что корневой элемент существует, чтобы избежать ошибок
+if (!rootElement) {
+  throw new Error("Root element with id 'root' not found in the document.");
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+// Создаем корневой узел для рендеринга React-приложения
+const root = ReactDOM.createRoot(rootElement);
 
-const startApp = async () => {
+// Создаем асинхронную функцию main для правильной инициализации SDK
+async function main() {
   try {
-    // Ждем, пока скрипт Telegram загрузится
-    await new Promise<void>((resolve, reject) => {
-      if (window.Telegram && window.Telegram.WebApp) {
-        return resolve();
-      }
-      const timeout = setTimeout(() => reject(new Error('Telegram SDK timeout')), 2000);
-      document.addEventListener('telegram.WebApp.ready', () => {
-        clearTimeout(timeout);
-        resolve();
-      }, { once: true });
-    });
+    // Вызываем init() и ждем его завершения.
+    // Эта функция подготавливает SDK к работе.
+    await init();
 
-    // Инициализируем и расширяем
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
-
+    // После успешной инициализации рендерим наше основное приложение
     root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-  } catch (error) {
-    console.error('Failed to initialize Telegram SDK', error);
+  } catch (e) {
+    // Если произошла ошибка на этапе инициализации, выводим ее в консоль
+    // и показываем пользователю сообщение об ошибке.
+    console.error("SDK initialization error:", e);
     root.render(
-      <div>Ошибка инициализации. Пожалуйста, перезапустите приложение.</div>
+      <React.StrictMode>
+        <div>Критическая ошибка инициализации SDK. Пожалуйста, перезапустите приложение.</div>
+      </React.StrictMode>
     );
   }
-};
+}
 
-startApp();
+// Запускаем весь процесс инициализации и рендеринга
+main();
