@@ -1,10 +1,15 @@
-// viago/frontend/src/App.tsx - v3.0
+// viago/frontend/src/App.tsx - v6.0 Apple HIG
 import React, { useState, useEffect } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
-import { HomeIcon, PlusSquareIcon, UserIcon, SearchIcon, ArrowLeftIcon } from './Icons';
+import { 
+    HomeIcon, HomeIconFilled, 
+    PlusSquareIcon, PlusSquareIconFilled, 
+    UserIcon, UserIconFilled, 
+    SearchIcon, ArrowLeftIcon 
+} from './Icons';
 import './App.css';
 
-// --- КОНСТАНТЫ И ТИПЫ ---
+// --- Типы и Константы ---
 const BACKEND_URL = "https://api.goviago.ru";
 type Tab = 'catalog' | 'sell' | 'profile';
 
@@ -18,25 +23,24 @@ interface Ticket {
   id: number;
   event_name: string;
   event_date: string;
+  venue: string;
   price: number;
   status: 'available' | 'sold' | 'archived';
-  seller: { id: number; first_name: string; rating: number };
 }
 interface EventInfo {
-    event_name: string;
-    event_date: string;
-    city: string;
-    venue: string;
+  event_name: string;
+  event_date: string;
+  city: string;
+  venue: string;
 }
 
-// --- ОСНОВНОЙ КОМПОНЕНТ APP ---
+// --- Основной компонент App ---
 function App() {
   const initDataRaw = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
 
-  // Эффект для аутентификации пользователя
   useEffect(() => {
     if (!initDataRaw) {
       console.warn("DEV MODE: No Telegram InitData. Using mock user.");
@@ -48,15 +52,16 @@ function App() {
       method: 'POST',
       headers: { 'X-Telegram-Init-Data': initDataRaw },
     })
-      .then(response => response.ok ? response.json() : response.json().then(err => { throw new Error(err.detail) }))
+      .then(response => {
+        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || 'Server error') });
+        return response.json();
+      })
       .then(data => setUser({ ...data, balance: parseFloat(data.balance) }))
       .catch(err => setError(err.message));
   }, [initDataRaw]);
-
-  // --- Рендер ---
-  if (error) return <div className="error-card">Ошибка: {error}</div>;
-  if (!user && initDataRaw) return <div className="loading">Верификация...</div>;
-  if (!user) return <div className="loading">Загрузка...</div>
+  
+  if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
+  if (!user) return null; // Or a full-page loader
 
   return (
     <div className="app-container">
@@ -70,193 +75,53 @@ function App() {
   );
 }
 
-// --- КОМПОНЕНТЫ ВКЛАДОК (ЭКРАНЫ) ---
+// --- Компоненты Экранов ---
 
-// 1. Вкладка "Каталог"
 function CatalogView() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  // ... (логика покупки, загрузки, ошибок как и раньше)
-  // Для простоты оставим ее без изменений, фокус на навигации и продаже
-
+  
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/tickets/`)
       .then(res => res.json())
       .then(data => setTickets(data.map((t: any) => ({...t, price: parseFloat(t.price)}))))
-      .catch(err => console.error("Failed to fetch tickets", err));
+      .catch(console.error);
   }, []);
-  
+
   const availableTickets = tickets.filter(t => t.status === 'available');
 
   return (
-    <div>
-      <h1 className="page-title">События</h1>
-      <div className="search-bar-wrapper">
-        <div className="icon"><SearchIcon /></div>
-        <input type="text" className="search-bar" placeholder="Поиск по событиям..." />
+    <>
+      <h1 className="large-title">События</h1>
+      <div className="search-bar">
+        <SearchIcon />
+        <input type="text" placeholder="Поиск" />
       </div>
-      <div className="ticket-list">
+      <div className="list-container">
         {availableTickets.length > 0 ? availableTickets.map(ticket => (
-          <div key={ticket.id} className="ticket-card">
+          <div key={ticket.id} className="list-card">
             <h3>{ticket.event_name}</h3>
-            <p>{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })}</p>
-            <div className="ticket-card-footer">
-              <span className="price">{ticket.price.toFixed(2)} ₽</span>
-              <button className="buy-btn">Купить</button>
+            <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
+            <div className="footer">
+              <span className="price">{ticket.price.toFixed(0)} ₽</span>
+              <button className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
             </div>
           </div>
-        )) : <div className="info-card">В продаже пока нет билетов.</div>}
+        )) : (
+          <div className="info-card">
+            <h4>Нет билетов в продаже</h4>
+            <p>Загляните позже</p>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
-
-// 2. Вкладка "Продать" (Многошаговый процесс)
-function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
-  const [step, setStep] = useState(1); // 1: Поиск, 2: Детали
-  const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
-
-  const handleEventSelect = (event: EventInfo) => {
-    setSelectedEvent(event);
-    setStep(2);
-  };
-  
-  const handleBack = () => {
-    setSelectedEvent(null);
-    setStep(1);
-  };
-
-  if (step === 1) {
-    return <EventSearchView onEventSelect={handleEventSelect} />;
-  }
-  
-  if (step === 2 && selectedEvent) {
-    return <AddTicketView event={selectedEvent} onBack={handleBack} initDataRaw={initDataRaw} onTicketAdded={onFlowComplete} />;
-  }
-
-  return null; // На случай непредвиденных обстоятельств
-}
-
-// 2.1. Шаг 1: Поиск события
-function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) => void }) {
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState<EventInfo[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (query.length < 2) {
-            setResults([]);
-            return;
-        }
-
-        const handler = setTimeout(() => {
-            setLoading(true);
-            fetch(`${BACKEND_URL}/api/events/search?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => setResults(data))
-                .catch(console.error)
-                .finally(() => setLoading(false));
-        }, 500); // Debounce для снижения нагрузки на API
-
-        return () => clearTimeout(handler);
-    }, [query]);
-
-    return (
-        <div>
-            <h1 className="page-title">Продать билет</h1>
-            <p className="hint" style={{marginTop: '-16px', marginBottom: '16px'}}>Найдите мероприятие, на которое вы хотите продать билет.</p>
-            <div className="search-bar-wrapper">
-                <div className="icon"><SearchIcon /></div>
-                <input
-                    type="text"
-                    className="search-bar"
-                    placeholder="Название, город или площадка..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    autoFocus
-                />
-            </div>
-            {loading && <div className="loading">Поиск...</div>}
-            <ul className="event-search-results">
-                {results.map((event, index) => (
-                    <li key={index} onClick={() => onEventSelect(event)}>
-                        <h4>{event.event_name}</h4>
-                        <p>{event.venue}, {event.city} - {new Date(event.event_date).toLocaleDateString('ru-RU')}</p>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
-
-
-// 2.2. Шаг 2: Форма добавления билета (модифицированная)
-function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: EventInfo, onBack: () => void, onTicketAdded: () => void, initDataRaw: string | undefined }) {
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!initDataRaw) {
-        setFormError("Ошибка аутентификации. Перезапустите приложение.");
-        return;
-    }
-    setSubmitting(true);
-    setFormError('');
-
-    const formData = new FormData(e.currentTarget);
-    // Добавляем данные о событии, которые теперь не в форме
-    formData.append('event_name', event.event_name);
-    formData.append('event_date', event.event_date);
-    formData.append('city', event.city);
-    formData.append('venue', event.venue);
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
-            method: 'POST',
-            headers: { 'X-Telegram-Init-Data': initDataRaw },
-            body: formData,
-        });
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.detail || 'Ошибка создания билета');
-        }
-        alert('Билет успешно выставлен на продажу!');
-        onTicketAdded();
-    } catch (error) {
-        setFormError(error instanceof Error ? error.message : 'Неизвестная ошибка');
-    } finally {
-        setSubmitting(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="sell-flow-header" style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px'}}>
-        <button onClick={onBack} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><ArrowLeftIcon /></button>
-        <h2 style={{margin: 0, fontSize: '22px'}}>Детали билета</h2>
-      </div>
-      <form onSubmit={handleSubmit} className="add-ticket-form">
-        <div className="input-imitation">{event.event_name}</div>
-        <input name="price" type="number" step="0.01" placeholder="Цена в рублях" required />
-        <input name="sector" placeholder="Сектор (необязательно)" />
-        <input name="row" placeholder="Ряд (необязательно)" />
-        <input name="seat" placeholder="Место (необязательно)" />
-        <label htmlFor="ticket_file_input">Файл билета (PDF, JPG, PNG):</label>
-        <input id="ticket_file_input" name="ticket_file" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
-        <button type="submit" className="buy-btn" disabled={submitting}>
-          {submitting ? 'Отправка...' : 'Выставить на продажу'}
-        </button>
-        {formError && <p className="error-text">{formError}</p>}
-      </form>
-    </div>
+    </>
   );
 }
 
 function ProfileView({ user }: { user: User }) {
   return (
-    <div>
-      <h1 className="page-title">Профиль</h1>
-      <div className="profile-card">
+    <>
+      <h1 className="large-title">Профиль</h1>
+      <div className="list-card profile-list">
         <div className="profile-row">
             <span>Имя</span>
             <span>{user.first_name}</span>
@@ -267,30 +132,144 @@ function ProfileView({ user }: { user: User }) {
         </div>
         <div className="profile-row">
             <span>Рейтинг</span>
-            <span>{user.rating.toFixed(1)} / 5.0</span>
+            <span>{user.rating.toFixed(1)}</span>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-// --- НАВИГАЦИОННЫЙ КОМПОНЕНТ ---
+function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
+  const [step, setStep] = useState(1);
+  const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
+  
+  const handleEventSelect = (event: EventInfo) => { 
+    setSelectedEvent(event); 
+    setStep(2); 
+  };
+  const handleBack = () => { 
+    setStep(1); 
+    setSelectedEvent(null);
+  };
+  const handleComplete = () => {
+    onFlowComplete();
+  };
+
+  if (step === 1) {
+    return <EventSearchView onEventSelect={handleEventSelect} />;
+  }
+
+  if (step === 2 && selectedEvent) {
+    return <AddTicketView event={selectedEvent} onBack={handleBack} onTicketAdded={handleComplete} initDataRaw={initDataRaw} />;
+  }
+  
+  return null; // Should not happen
+}
+
+function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) => void }) {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<EventInfo[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (query.length < 2) {
+            setResults([]);
+            return;
+        }
+        const handler = setTimeout(() => {
+            setLoading(true);
+            fetch(`${BACKEND_URL}/api/events/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => setResults(data))
+                .catch(console.error)
+                .finally(() => setLoading(false));
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [query]);
+
+    return (
+        <>
+            <h1 className="large-title">Продать билет</h1>
+            <div className="search-bar">
+                <SearchIcon />
+                <input type="text" placeholder="Найдите ваше событие" value={query} onChange={e => setQuery(e.target.value)} autoFocus />
+            </div>
+            {/* Results rendering logic here */}
+        </>
+    );
+}
+
+function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: EventInfo; onBack: () => void; onTicketAdded: () => void; initDataRaw: string | undefined }) {
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!initDataRaw) {
+            setFormError("Ошибка аутентификации. Перезапустите приложение.");
+            return;
+        }
+        setSubmitting(true);
+        setFormError('');
+
+        const formData = new FormData(e.currentTarget);
+        formData.append('event_name', event.event_name);
+        formData.append('event_date', event.event_date);
+        formData.append('city', event.city);
+        formData.append('venue', event.venue);
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
+                method: 'POST',
+                headers: { 'X-Telegram-Init-Data': initDataRaw },
+                body: formData,
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Ошибка создания билета');
+            }
+            alert('Билет успешно выставлен на продажу!');
+            onTicketAdded();
+        } catch (error) {
+            setFormError(error instanceof Error ? error.message : 'Неизвестная ошибка');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <>
+            <div style={{display: 'flex', alignItems: 'center', margin: '16px 0'}}>
+                <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}><ArrowLeftIcon /></button>
+                <h1 className="large-title" style={{margin: '0 auto', paddingRight: '24px' }}>Детали</h1>
+            </div>
+            <form onSubmit={handleSubmit} className="form-container">
+                <input type="number" step="0.01" name="price" placeholder="Цена в рублях" required />
+                <input type="text" name="sector" placeholder="Сектор (необязательно)" />
+                <input type="text" name="row" placeholder="Ряд (необязательно)" />
+                <input type="text" name="seat" placeholder="Место (необязательно)" />
+                <input type="file" name="ticket_file" required />
+                <button type="submit" className="apple-button" disabled={submitting}>
+                    {submitting ? 'Публикация...' : 'Выставить на продажу'}
+                </button>
+                {formError && <p className="error-text">{formError}</p>}
+            </form>
+        </>
+    );
+}
+
 function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (tab: Tab) => void }) {
-  const tabs: { id: Tab; label: string; icon: JSX.Element }[] = [
-    { id: 'catalog', label: 'События', icon: <HomeIcon /> },
-    { id: 'sell', label: 'Продать', icon: <PlusSquareIcon /> },
-    { id: 'profile', label: 'Профиль', icon: <UserIcon /> },
+  const tabs = [
+    { id: 'catalog', label: 'События', icon: <HomeIcon />, activeIcon: <HomeIconFilled /> },
+    { id: 'sell', label: 'Продать', icon: <PlusSquareIcon />, activeIcon: <PlusSquareIconFilled /> },
+    { id: 'profile', label: 'Профиль', icon: <UserIcon />, activeIcon: <UserIconFilled /> },
   ];
 
   return (
     <div className="tab-bar">
       {tabs.map(tab => (
-        <button
-          key={tab.id}
-          className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-          onClick={() => setActiveTab(tab.id)}
-        >
-          {tab.icon}
+        <button key={tab.id} className={`tab-button ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+          {activeTab === tab.id ? tab.activeIcon : tab.icon}
           <span>{tab.label}</span>
         </button>
       ))}

@@ -1,265 +1,188 @@
-/* viago/frontend/src/App.css - v4.0 Aviasales & Yandex.Music Inspired */
+/* viago/frontend/src/App.css - v6.0 Apple HIG */
 
 :root {
-  /* 
-    Новая палитра:
-    - Surface: цвет фона карточек и элементов (взят из Aviasales)
-    - Accent: яркий желтый для кнопок и акцентов (взят из Yandex)
-    - Text/Subtle: цвета для текста, чтобы создать иерархию
-  */
-  --color-background: var(--tg-theme-bg-color, #f3f4f6); /* Светло-серый, как у Aviasales */
-  --color-surface: var(--tg-theme-secondary-bg-color, #ffffff); /* Белый для карточек */
-  --color-accent: #ffde00; /* Яркий желтый из Я.Афиши */
-  --color-accent-text: #000000;
+  --font-apple: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  --color-text-primary: var(--tg-theme-text-color, #111827);
-  --color-text-secondary: var(--tg-theme-hint-color, #6b7280);
-  --color-link: var(--tg-theme-link-color, #007aff);
-  --color-border: #e5e7eb;
-
-  --border-radius-card: 20px; /* Большое скругление, как у Aviasales */
-  --border-radius-input: 16px;
-  --border-radius-button: 16px;
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08);
+  /* Apple HIG Palette */
+  --ios-bg: #f2f2f7;
+  --ios-grouped-bg: #ffffff;
+  --ios-label-primary: #000000;
+  --ios-label-secondary: #8a8a8e;
+  --ios-label-tertiary: #c5c5c7;
+  --ios-blue: #007aff;
+  --ios-separator: rgba(60, 60, 67, 0.29);
+  
+  --radius: 12px;
 }
 
-/* Базовые стили */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
-  overscroll-behavior-y: none;
+  font-family: var(--font-apple);
+  background-color: var(--ios-bg);
+  color: var(--ios-label-primary);
 }
 
-/* === Основной контейнер и заголовки === */
+/* === Layout & Typography === */
 .app-container {
-  padding-bottom: 90px; /* Место под TabBar */
+  padding-bottom: 90px;
 }
 .page-container {
-  padding: 16px;
+  padding: 0 16px;
 }
-.page-title {
-  font-size: 32px;
+.large-title {
+  font-size: 34px;
   font-weight: 700;
-  margin: 0 0 20px 0;
-  padding: 0 4px; /* Небольшой отступ для красоты */
-}
-.page-subtitle {
-    font-size: 16px;
-    color: var(--color-text-secondary);
-    margin: -16px 0 20px 4px;
+  margin: 16px 0 12px 0;
 }
 
-/* === Нижняя навигация (TabBar) === */
+/* === TabBar with Frosted Glass Effect === */
 .tab-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 65px;
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  height: 55px; /* iOS standard height */
+  background-color: rgba(249, 249, 249, 0.85);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--ios-separator);
   display: flex;
   justify-content: space-around;
-  align-items: center;
+  align-items: flex-start; /* Icons are pushed to top */
   z-index: 1000;
-  padding: 0 10px;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+  padding: 5px;
+  padding-bottom: calc(env(safe-area-inset-bottom) / 2);
 }
 .tab-button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   background: none;
   border: none;
-  color: var(--color-text-secondary);
-  font-size: 11px;
+  color: var(--ios-label-tertiary);
+  font-size: 10px;
   font-weight: 500;
-  gap: 3px;
-  transition: color 0.2s ease, transform 0.1s ease;
-  padding: 4px;
+  gap: 2px;
+  transition: color 0.2s ease;
 }
 .tab-button.active {
-  color: var(--color-text-primary);
-}
-.tab-button:active {
-    transform: scale(0.95);
+  color: var(--ios-blue);
 }
 
-/* === Карточка билета (вдохновлено Aviasales) === */
-.ticket-list {
-  display: grid;
-  gap: 16px;
+/* === Standard Apple UI Elements === */
+.apple-button {
+  background-color: var(--ios-blue);
+  color: white;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
 }
-.ticket-card {
-  background-color: var(--color-surface);
-  border-radius: var(--border-radius-card);
-  padding: 20px;
-  box-shadow: var(--shadow-card);
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #e4e4e6;
+  border-radius: var(--radius);
+  padding: 0 12px;
+  gap: 8px;
+  color: var(--ios-label-secondary);
+}
+.search-bar input {
+  flex-grow: 1;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 17px;
+  color: var(--ios-label-primary);
+}
+.search-bar input:focus {
+  outline: none;
+}
+
+/* === Inset Grouped List Style === */
+.list-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 16px;
+  margin-top: 20px;
 }
-.ticket-card h3 {
+.list-card {
+  background-color: var(--ios-grouped-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.list-card h3 {
   font-size: 20px;
   font-weight: 600;
-  margin: 0;
-  line-height: 1.3;
+  margin: 0 0 4px 0;
 }
-.ticket-card .venue {
+.list-card .subtitle {
   font-size: 15px;
-  color: var(--color-text-secondary);
+  color: var(--ios-label-secondary);
+  margin: 0;
 }
-.ticket-card-footer {
+.list-card .footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 16px;
 }
-.ticket-card .price {
+.list-card .price {
   font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-.buy-btn {
-  background-color: var(--color-accent);
-  color: var(--color-accent-text);
-  padding: 12px 24px;
-  font-size: 16px;
   font-weight: 600;
-  border-radius: var(--border-radius-button);
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-.buy-btn:hover {
-    opacity: 0.9;
 }
 
-
-/* === Поиск и Формы === */
-.input-wrapper {
-  position: relative;
-}
-.input-wrapper .icon {
-  position: absolute;
-  top: 50%;
-  left: 18px;
-  transform: translateY(-50%);
-  color: var(--color-text-secondary);
-}
-.styled-input {
-  width: 100%;
-  padding: 16px 16px 16px 52px;
-  font-size: 16px;
-  border-radius: var(--border-radius-input);
-  border: none;
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
-  box-sizing: border-box;
-  box-shadow: var(--shadow-card);
-}
-.styled-input::placeholder {
-    color: var(--color-text-secondary);
-}
-
-/* === Процесс продажи (Sell Flow) === */
-.event-search-results ul {
-    list-style: none;
-    padding: 0;
-    margin: 16px 0 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.event-search-results li {
-  background-color: var(--color-surface);
-  padding: 16px;
-  border-radius: var(--border-radius-input);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-.event-search-results li:hover {
-  background-color: #fafafa;
-}
-.event-search-results h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-}
-.event-search-results p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-/* Форма добавления билета */
-.add-ticket-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.add-ticket-form input[type="text"],
-.add-ticket-form input[type="number"] {
-    font-size: 16px;
-    padding: 14px;
-    border-radius: var(--border-radius-input);
-    border: 1px solid var(--color-border);
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-}
-.add-ticket-form .input-imitation {
-    background-color: var(--color-background);
-    color: var(--color-text-secondary);
-    padding: 14px;
-    border-radius: var(--border-radius-input);
-}
-.add-ticket-form button {
-    margin-top: 12px;
-}
-
-
-/* === Профиль === */
-.profile-card {
-    background-color: var(--color-surface);
-    border-radius: var(--border-radius-card);
-    padding: 12px 20px;
-    box-shadow: var(--shadow-card);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.profile-row {
+/* Profile List Style */
+.profile-list .profile-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 16px;
+    font-size: 17px;
     padding: 12px 0;
-    border-bottom: 1px solid var(--color-background);
+    border-bottom: 0.5px solid var(--ios-separator);
 }
-.profile-row:last-child {
+.profile-list .profile-row:last-child {
     border-bottom: none;
 }
-.profile-row span:first-child {
-    color: var(--color-text-secondary);
-}
-.profile-row span:last-child {
-    font-weight: 600;
+.profile-list .profile-row span:last-child {
+    font-weight: 500;
+    color: var(--ios-label-secondary);
 }
 
-/* Утилиты */
-.info-card {
-    padding: 40px 20px;
-    text-align: center;
-    color: var(--color-text-secondary);
-    background-color: var(--color-surface);
-    border-radius: var(--border-radius-card);
-    box-shadow: var(--shadow-card);
+/* Form Styles */
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-container input {
+    background-color: var(--ios-grouped-bg);
+    border: 0.5px solid var(--ios-separator);
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: 17px;
+}
+.form-container button {
+  margin-top: 8px;
 }
 .error-text {
-    color: #ef4444;
-    text-align: center;
-    margin-top: 12px;
+  color: #ff3b30;
+  text-align: center;
+  font-size: 15px;
+}
+
+.info-card {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ios-label-secondary);
+}
+.info-card h4 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ios-label-primary);
+  margin: 0 0 8px 0;
 }
