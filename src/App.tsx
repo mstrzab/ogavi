@@ -1,6 +1,11 @@
-// viago/frontend/src/App.tsx - v7.1 (Correct SDK Usage)
+// viago/frontend/src/App.tsx - v7.1 (API-Corrected Build Fix)
 import React, { useState, useEffect } from 'react';
-import { useRawInitData, useWebApp } from '@telegram-apps/sdk-react';
+import { 
+    useRawInitData, 
+    hapticFeedback, // Correct: direct object import
+    showPopup,        // Correct: direct function import
+    showConfirm       // Correct: direct function import for confirmation
+} from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
     PlusSquareIcon, PlusSquareIconFilled,
@@ -66,7 +71,7 @@ function App() {
   useEffect(fetchUser, [initDataRaw]);
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
-  if (!user) return null; // Or a full-page loader
+  if (!user) return null;
 
   return (
     <div className="app-container">
@@ -84,10 +89,8 @@ function App() {
 
 function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   const initDataRaw = useRawInitData();
-  // --- FIX IS HERE: Using the main webApp hook ---
-  const webApp = useWebApp();
-
   const [tickets, setTickets] = useState<Ticket[]>([]);
+
   const fetchTickets = () => {
     fetch(`${BACKEND_URL}/api/tickets/`)
       .then(res => res.json())
@@ -98,35 +101,28 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
 
   const handleBuy = async (ticket: Ticket) => {
     try {
-      // --- Using webApp.showPopup ---
-      const buttonId = await webApp.showPopup({
-          title: 'Подтверждение',
-          message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
-          buttons: [{ id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' }]
-      });
-
-      if (buttonId === 'buy') {
-          // --- Using webApp.HapticFeedback ---
-          webApp.HapticFeedback.impactOccurred('medium');
-          const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
-              method: 'POST',
-              headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
-          });
-          if (!response.ok) {
-              const err = await response.json();
-              throw new Error(err.detail || 'Не удалось купить билет');
-          }
-          webApp.showPopup({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
-          onPurchase();
-          fetchTickets();
-      }
-    } catch (err) {
-        // The showPopup promise rejects if the popup is closed
-        if (err instanceof Error) {
-            webApp.HapticFeedback.notificationOccurred('error');
-            webApp.showPopup({ title: 'Ошибка', message: err.message });
+        const isConfirmed = await showConfirm(`Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`);
+        
+        if (isConfirmed) {
+            hapticFeedback.impactOccurred('medium');
+            const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
+                method: 'POST',
+                headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Не удалось купить билет');
+            }
+            showPopup({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
+            onPurchase();
+            fetchTickets();
         }
-        console.error(err);
+    } catch (err) {
+        // Если showConfirm выкидывает ошибку (например, при закрытии окна), ловим ее здесь
+        if (err instanceof Error) {
+            hapticFeedback.notificationOccurred('error');
+            showPopup({ title: 'Ошибка', message: err.message });
+        }
     }
   };
 
@@ -140,7 +136,7 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
         <input type="text" placeholder="Поиск" />
       </div>
       <div className="list-container">
-        {availableTickets.length > 0 ? availableTickets.map(ticket => (
+        {availableTickets.map(ticket => (
           <div key={ticket.id} className="list-card">
             <h3>{ticket.event_name}</h3>
             <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
@@ -149,11 +145,12 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
               <button onClick={() => handleBuy(ticket)} className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
             </div>
           </div>
-        )) : (
-          <div className="info-card">
-            <h4>Нет билетов в продаже</h4>
-            <p>Загляните позже</p>
-          </div>
+        ))}
+        {availableTickets.length === 0 && (
+            <div className="info-card">
+                <h4>Нет билетов в продаже</h4>
+                <p>Загляните позже</p>
+            </div>
         )}
       </div>
     </>
@@ -192,7 +189,8 @@ function MyTicketsList() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
 
     useEffect(() => {
-        fetch(`${BACKEND_URL}/api/users/me/tickets/purchased`, { headers: { 'X-Telegram-Init-Data': initDataRaw || '' }})
+        if (!initDataRaw) return;
+        fetch(`${BACKEND_URL}/api/users/me/tickets/purchased`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
             .then(res => res.json())
             .then(data => setTickets(data))
             .catch(console.error);
@@ -217,7 +215,8 @@ function SellingTicketsList() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
 
     useEffect(() => {
-        fetch(`${BACKEND_URL}/api/users/me/tickets/selling`, { headers: { 'X-Telegram-Init-Data': initDataRaw || '' }})
+        if (!initDataRaw) return;
+        fetch(`${BACKEND_URL}/api/users/me/tickets/selling`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
             .then(res => res.json())
             .then(data => setTickets(data))
             .catch(console.error);
@@ -336,7 +335,7 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
                 const err = await response.json();
                 throw new Error(err.detail || 'Ошибка создания билета');
             }
-            alert('Билет успешно выставлен на продажу!');
+            showPopup({ message: 'Билет успешно выставлен на продажу!' });
             onTicketAdded();
         } catch (error) {
             setFormError(error instanceof Error ? error.message : 'Неизвестная ошибка');
