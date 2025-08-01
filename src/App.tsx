@@ -1,4 +1,4 @@
-// viago/frontend/src/App.tsx - v6.0 Apple HIG
+// viago/frontend/src/App.tsx - v6.1 (Build Fixed)
 import React, { useState, useEffect } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
 import { 
@@ -163,7 +163,7 @@ function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | u
     return <AddTicketView event={selectedEvent} onBack={handleBack} onTicketAdded={handleComplete} initDataRaw={initDataRaw} />;
   }
   
-  return null; // Should not happen
+  return null;
 }
 
 function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) => void }) {
@@ -194,7 +194,16 @@ function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) 
                 <SearchIcon />
                 <input type="text" placeholder="Найдите ваше событие" value={query} onChange={e => setQuery(e.target.value)} autoFocus />
             </div>
-            {/* Results rendering logic here */}
+            <div className="list-container">
+                {loading && <p>Поиск...</p>}
+                {!loading && query.length > 1 && results.length === 0 && <p>Ничего не найдено</p>}
+                {results.map((event, index) => (
+                    <div key={index} className="list-card" onClick={() => onEventSelect(event)}>
+                        <h3>{event.event_name}</h3>
+                        <p className="subtitle">{event.venue}, {event.city}</p>
+                    </div>
+                ))}
+            </div>
         </>
     );
 }
