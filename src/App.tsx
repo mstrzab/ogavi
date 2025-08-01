@@ -1,10 +1,9 @@
-// viago/frontend/src/App.tsx - v7.1 (API-Corrected Build Fix)
+// viago/frontend/src/App.tsx - v7.2 (Final Popup API Fix)
 import React, { useState, useEffect } from 'react';
 import { 
     useRawInitData, 
-    hapticFeedback, // Correct: direct object import
-    showPopup,        // Correct: direct function import
-    showConfirm       // Correct: direct function import for confirmation
+    hapticFeedback, 
+    showPopup, // Only showPopup is needed for both alerts and confirmations
 } from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
@@ -101,9 +100,17 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
 
   const handleBuy = async (ticket: Ticket) => {
     try {
-        const isConfirmed = await showConfirm(`Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`);
+        // Correct way to show a confirmation dialog
+        const buttonId = await showPopup({
+            title: 'Подтверждение',
+            message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
+            buttons: [
+                { id: 'buy', type: 'default', text: 'Купить' },
+                { type: 'cancel' },
+            ],
+        });
         
-        if (isConfirmed) {
+        if (buttonId === 'buy') {
             hapticFeedback.impactOccurred('medium');
             const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
                 method: 'POST',
@@ -118,7 +125,6 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
             fetchTickets();
         }
     } catch (err) {
-        // Если showConfirm выкидывает ошибку (например, при закрытии окна), ловим ее здесь
         if (err instanceof Error) {
             hapticFeedback.notificationOccurred('error');
             showPopup({ title: 'Ошибка', message: err.message });
@@ -136,7 +142,7 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
         <input type="text" placeholder="Поиск" />
       </div>
       <div className="list-container">
-        {availableTickets.map(ticket => (
+        {availableTickets.length > 0 ? availableTickets.map(ticket => (
           <div key={ticket.id} className="list-card">
             <h3>{ticket.event_name}</h3>
             <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
@@ -145,12 +151,11 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
               <button onClick={() => handleBuy(ticket)} className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
             </div>
           </div>
-        ))}
-        {availableTickets.length === 0 && (
-            <div className="info-card">
-                <h4>Нет билетов в продаже</h4>
-                <p>Загляните позже</p>
-            </div>
+        )) : (
+          <div className="info-card">
+            <h4>Нет билетов в продаже</h4>
+            <p>Загляните позже</p>
+          </div>
         )}
       </div>
     </>
