@@ -1,175 +1,235 @@
-/* viago/frontend/src/App.css - v2.0 Yandex Afisha Style */
-
+/* viago/frontend/src/App.css - v3.0 Modern TabBar Style */
 :root {
-  /* Основные цвета, вдохновленные Я.Афишей и адаптированные под Telegram */
   --color-background: var(--tg-theme-bg-color, #ffffff);
-  --color-secondary-bg: var(--tg-theme-secondary-bg-color, #f5f5f5);
-  --color-text: var(--tg-theme-text-color, #000000);
-  --color-hint: var(--tg-theme-hint-color, #999999);
-  --color-link: var(--tg-theme-link-color, #007aff);
-  --color-primary-accent: #ffde00; /* Яркий желтый, как у Яндекса */
-  --color-primary-accent-text: #000000;
-  --color-destructive: #ff3b30; /* Цвет для ошибок и удалений */
+  --color-secondary-bg: var(--tg-theme-secondary-bg-color, #f3f4f6);
+  --color-text: var(--tg-theme-text-color, #111827);
+  --color-hint: var(--tg-theme-hint-color, #6b7280);
+  --color-link: var(--tg-theme-link-color, #3b82f6);
+  --color-primary-accent: var(--tg-theme-button-color, #2563eb);
+  --color-primary-accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --color-destructive: #ef4444;
   --border-radius-s: 8px;
   --border-radius-m: 12px;
+  --border-radius-l: 16px;
+  --border-color: #e5e7eb;
 }
 
-/* Стили для темной темы Telegram */
-body[class*="dark"] {
-  --color-primary-accent-text: #ffffff;
-  --color-destructive: #ff453a;
-}
-
-/* Базовые стили */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--color-background);
   color: var(--color-text);
-  overscroll-behavior-y: none; /* Убираем "оттягивание" страницы на iOS */
+  overscroll-behavior-y: none;
 }
 
+/* === Main App Layout & Tab Bar === */
 .app-container {
-  max-width: 800px;
-  margin: 0 auto;
+  padding-bottom: 80px; /* Space for the fixed tab bar */
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: var(--color-secondary-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom); /* For iPhone X notch */
+}
+
+.tab-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-hint);
+  font-size: 10px;
+  gap: 2px;
+  transition: color 0.2s ease;
+  padding: 4px 12px;
+}
+
+.tab-button.active {
+  color: var(--color-link);
+}
+
+/* === General Page Styles === */
+.page-container {
   padding: 16px;
 }
 
-/* Шапка с навигацией */
-header {
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 24px 0;
 }
 
-header h1 {
-    font-size: 24px;
-    font-weight: 700;
-    margin: 0 0 16px 0;
-    text-align: center;
+/* === Search Bar === */
+.search-bar-wrapper {
+  position: relative;
+  margin-bottom: 24px;
 }
-
-nav {
-  display: flex;
-  background-color: var(--color-secondary-bg);
-  border-radius: var(--border-radius-m);
-  padding: 4px;
-}
-
-nav button {
-  flex-grow: 1;
-  padding: 10px;
-  border: none;
-  background-color: transparent;
+.search-bar-wrapper .icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
   color: var(--color-hint);
+}
+.search-bar {
+  width: 100%;
+  padding: 12px 12px 12px 44px;
   font-size: 16px;
-  font-weight: 600;
-  border-radius: var(--border-radius-s);
-  transition: all 0.2s ease-in-out;
-}
-
-nav button:disabled {
-  background-color: var(--color-background);
+  border-radius: var(--border-radius-l);
+  border: 1px solid var(--border-color);
+  background-color: var(--color-secondary-bg);
   color: var(--color-text);
-  cursor: default;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+.search-bar:focus {
+  outline: none;
+  border-color: var(--color-link);
 }
 
-/* Карточка билета в каталоге */
+/* === Ticket Card (Catalog) === */
 .ticket-list {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 16px;
 }
 
 .ticket-card {
   background-color: var(--color-secondary-bg);
-  border-radius: var(--border-radius-m);
+  border-radius: var(--border-radius-l);
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-
-.ticket-card:hover {
-  transform: translateY(-2px);
-}
-
 .ticket-card h3 {
   font-size: 18px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
-
 .ticket-card p {
   margin: 0;
   font-size: 14px;
   color: var(--color-hint);
 }
-
+.ticket-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
 .ticket-card .price {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
-  margin-top: 12px;
 }
-
-.seller {
-  font-size: 12px !important;
-  margin-top: 12px;
-  border-top: 1px solid var(--color-background);
-  padding-top: 8px;
-}
-
-/* Экран профиля */
-.profile-view h2, .add-ticket-view h2 {
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-
-.user-card {
-    background-color: var(--color-secondary-bg);
-    border-radius: var(--border-radius-m);
-    padding: 16px;
-}
-
-.user-card p {
-    margin: 8px 0;
-    font-size: 16px;
-}
-
-.add-ticket-btn {
-  width: 100%;
+.buy-btn {
   background-color: var(--color-primary-accent);
   color: var(--color-primary-accent-text);
-  padding: 16px;
-  font-size: 18px;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: var(--border-radius-m);
-  margin-top: 24px;
   border: none;
   cursor: pointer;
 }
 
-/* Форма добавления билета */
+/* === Profile View === */
+.profile-view .user-card {
+  background-color: var(--color-secondary-bg);
+  border-radius: var(--border-radius-l);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.profile-view p {
+  font-size: 16px;
+  margin: 12px 0;
+  display: flex;
+  justify-content: space-between;
+}
+.profile-view p strong {
+  color: var(--color-hint);
+}
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--border-radius-m);
+    border: none;
+    background-color: var(--color-destructive);
+    color: white;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+/* === Sell Flow === */
+.sell-flow-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.sell-flow-header button {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  padding: 4px;
+  cursor: pointer;
+}
+.sell-flow-header h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.event-search-results li {
+  list-style: none;
+  padding: 12px;
+  margin: 0 -12px;
+  border-radius: var(--border-radius-m);
+  cursor: pointer;
+}
+.event-search-results li:hover {
+  background-color: var(--color-secondary-bg);
+}
+.event-search-results h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+}
+.event-search-results p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-hint);
+}
+
+/* Form Styles */
 form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-
-input {
+input, .input-imitation {
   font-size: 16px;
   padding: 14px;
   border-radius: var(--border-radius-m);
-  border: 1px solid var(--tg-theme-hint-color);
+  border: 1px solid var(--border-color);
   background-color: var(--color-secondary-bg);
   color: var(--color-text);
+  width: 100%;
+  box-sizing: border-box;
 }
-
-input:focus {
-  outline: none;
-  border-color: var(--color-link);
+input[readonly] {
+  color: var(--color-hint);
+  cursor: not-allowed;
 }
-
 form button[type="submit"] {
   width: 100%;
   background-color: var(--color-primary-accent);
@@ -182,70 +242,18 @@ form button[type="submit"] {
   border: none;
   cursor: pointer;
 }
+.error-text {
+  color: var(--color-destructive);
+  text-align: center;
+}
 
-/* Утилиты */
-.loading, .error-card {
+/* Utility classes */
+.loading, .error-card, .info-card {
     padding: 40px 20px;
     text-align: center;
     color: var(--color-hint);
 }
-.error-card {
-    background-color: rgba(255, 59, 48, 0.1);
-    color: var(--color-destructive);
-    border-radius: var(--border-radius-m);
-}
-.error-text {
-    color: var(--color-destructive);
-}
-
-
-
-/* ... существующие стили ... */
-
-/* Улучшенная карточка билета */
-.ticket-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.ticket-card-main {
-    flex-grow: 1;
-}
-
-.ticket-card-aside {
-    text-align: right;
-    flex-shrink: 0;
-    margin-left: 16px;
-}
-
-.venue, .date, .seat-info {
-    font-size: 14px;
-    color: var(--color-hint);
-    margin: 4px 0 0 0 !important;
-}
-
-.seat-info {
-    font-weight: 500;
-    color: var(--color-text);
-}
-
-.buy-button {
-    background-color: var(--color-primary-accent);
-    color: var(--color-primary-accent-text);
-    margin-top: 8px;
-}
-
-
-.buy-btn {
-  width: 100%;
-  background-color: var(--color-primary-accent);
-  color: var(--color-primary-accent-text);
-  padding: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: var(--border-radius-m);
-  margin-top: 12px;
-  border: none;
-  cursor: pointer;
+.info-card {
+    background-color: var(--color-secondary-bg);
+    border-radius: var(--border-radius-l);
 }
