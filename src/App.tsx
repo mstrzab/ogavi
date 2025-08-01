@@ -231,44 +231,48 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
 
   return (
     <div>
-      <div className="sell-flow-header">
-        <button onClick={onBack}><ArrowLeftIcon /></button>
-        <h2>Детали билета</h2>
+      <div className="sell-flow-header" style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px'}}>
+        <button onClick={onBack} style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}><ArrowLeftIcon /></button>
+        <h2 style={{margin: 0, fontSize: '22px'}}>Детали билета</h2>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="add-ticket-form">
         <div className="input-imitation">{event.event_name}</div>
-        <div className="input-imitation">{new Date(event.event_date).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         <input name="price" type="number" step="0.01" placeholder="Цена в рублях" required />
         <input name="sector" placeholder="Сектор (необязательно)" />
         <input name="row" placeholder="Ряд (необязательно)" />
         <input name="seat" placeholder="Место (необязательно)" />
         <label htmlFor="ticket_file_input">Файл билета (PDF, JPG, PNG):</label>
         <input id="ticket_file_input" name="ticket_file" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="buy-btn" disabled={submitting}>
           {submitting ? 'Отправка...' : 'Выставить на продажу'}
         </button>
-        {formError && <p className="error-text">{formError}</p>}
+        {/* ... */}
       </form>
     </div>
   );
 }
 
-// 3. Вкладка "Профиль"
 function ProfileView({ user }: { user: User }) {
   return (
     <div>
       <h1 className="page-title">Профиль</h1>
-      <div className="user-card">
-        <p><strong>Имя</strong> <span>{user.first_name}</span></p>
-        <p><strong>Баланс</strong> <span>{user.balance.toFixed(2)} ₽</span></p>
-        <p><strong>Рейтинг</strong> <span>{user.rating.toFixed(1)} / 5.0</span></p>
+      <div className="profile-card">
+        <div className="profile-row">
+            <span>Имя</span>
+            <span>{user.first_name}</span>
+        </div>
+        <div className="profile-row">
+            <span>Баланс</span>
+            <span>{user.balance.toFixed(2)} ₽</span>
+        </div>
+        <div className="profile-row">
+            <span>Рейтинг</span>
+            <span>{user.rating.toFixed(1)} / 5.0</span>
+        </div>
       </div>
-      {/* Здесь можно добавить кнопки "История покупок", "Вывод средств" и т.д. */}
-      <button className="logout-btn">Выйти (демо)</button>
     </div>
   );
 }
-
 
 // --- НАВИГАЦИОННЫЙ КОМПОНЕНТ ---
 function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (tab: Tab) => void }) {
