@@ -214,7 +214,7 @@ function MyTicketsList({onViewTicket}: {ownViewTicket: (id: number) => void}) {
                 <div key={ticket.id} className="list-card" onClick={() => onViewTicket(ticket.id)} style={{cursor: 'pointer'}}>
                     <h3>{ticket.event_name}</h3>
                     <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
-                    <div className="footer"> <span className="price">{ticket.price.toFixed(0) р. </span> 
+                    <div className="footer"> <span className="price">{ticket.price.toFixed(0)} р. </span> 
                     </div>
                 </div>
             ))}
