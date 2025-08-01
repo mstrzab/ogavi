@@ -1,4 +1,4 @@
-// viago/frontend/src/App.tsx - v8.0 Active Search & Create Event Flow
+// viago/frontend/src/App.tsx - v9.1 (Prop Drilling Fix)
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRawInitData, hapticFeedback, showPopup } from '@telegram-apps/sdk-react';
 import {
@@ -68,15 +68,17 @@ function App() {
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
   if (!user) return null;
+  
   if (viewingTicketId) {
     return <TicketDetailView ticketId={viewingTicketId} onBack={() => setViewingTicketId(null)} />;
   }
+  
   return (
     <div className="app-container">
       <main className="page-container">
         {activeTab === 'catalog' && <CatalogView onPurchase={fetchUser} />}
         {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog')} />}
-        {activeTab === 'profile' && <ProfileView user={user} />}
+        {activeTab === 'profile' && <ProfileView user={user} onViewTicket={setViewingTicketId} />}
       </main>
       <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
@@ -171,8 +173,7 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   );
 }
 
-function ProfileView({ user, onViewTicket }: { user: User, onViewTicket: (id: number) => void }) {
-
+function ProfileView({ user, onViewTicket }: { user: User; onViewTicket: (id: number) => void; }) {
   const [segment, setSegment] = useState<ProfileSegment>('myTickets');
   return (
     <>
@@ -191,13 +192,15 @@ function ProfileView({ user, onViewTicket }: { user: User, onViewTicket: (id: nu
         <button onClick={() => setSegment('myTickets')} className={segment === 'myTickets' ? 'active' : ''}>Мои билеты</button>
         <button onClick={() => setSegment('forSale')} className={segment === 'forSale' ? 'active' : ''}>На продаже</button>
       </div>
-      {segment === 'myTickets' && <MyTicketsList onViewTicket={onViewTicket}/>}
+      {segment === 'myTickets' && <MyTicketsList onViewTicket={onViewTicket} />}
       {segment === 'forSale' && <SellingTicketsList />}
     </>
   );
 }
 
-function MyTicketsList({onViewTicket}: {ownViewTicket: (id: number) => void}) {
+// --- FIX IS HERE ---
+// Correctly named the prop to 'onViewTicket' to match what ProfileView passes.
+function MyTicketsList({ onViewTicket }: { onViewTicket: (id: number) => void; }) {
     const initDataRaw = useRawInitData();
     const [tickets, setTickets] = useState<Ticket[]>([]);
 
@@ -214,7 +217,9 @@ function MyTicketsList({onViewTicket}: {ownViewTicket: (id: number) => void}) {
                 <div key={ticket.id} className="list-card" onClick={() => onViewTicket(ticket.id)} style={{cursor: 'pointer'}}>
                     <h3>{ticket.event_name}</h3>
                     <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
-                    <div className="footer"> <span className="price">{ticket.price.toFixed(0)} р. </span> 
+                    <div className="footer">
+                        <span className="price">{ticket.price.toFixed(0)} ₽</span>
+                        <span>Посмотреть</span>
                     </div>
                 </div>
             ))}
@@ -427,7 +432,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     const [error, setError] = useState('');
     const [showSeat, setShowSeat] = useState(false);
 
-    // Функция для получения уровня заряда батареи
     const getBatteryLevel = async (): Promise<number | undefined> => {
         try {
             // @ts-ignore - The Battery API is not fully standardized in TS yet
@@ -439,7 +443,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         }
     };
 
-    // Функция для отправки данных верификации
     const recordVerification = async (point: 'a' | 'b') => {
         const battery = await getBatteryLevel();
         try {
@@ -456,7 +459,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         }
     };
 
-    // Загрузка данных билета и запись точки "А"
     useEffect(() => {
         const fetchDetails = async () => {
             try {
@@ -466,7 +468,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                 if (!response.ok) throw new Error('Не удалось загрузить детали билета.');
                 const data = await response.json();
                 setTicket(data);
-                // Записываем точку "А" сразу после успешной загрузки
                 recordVerification('a');
             } catch (err) {
                 setError((err as Error).message);
@@ -477,7 +478,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     
     const handleShowSeat = () => {
         setShowSeat(true);
-        // Записываем точку "Б" при показе места
         recordVerification('b');
         hapticFeedback.impactOccurred('heavy');
     };
@@ -486,8 +486,8 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     if (!ticket) return <div className="info-card">Загрузка билета...</div>;
 
     return (
-        <div className="ticket-detail-view">
-             <button onClick={onBack} className="back-button"><ArrowLeftIcon /> Назад</button>
+        <div className="ticket-detail-view" style={{padding: '16px'}}>
+             <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'var(--ios-blue)', fontSize: '17px', gap: '4px' }}><ArrowLeftIcon /> Профиль</button>
              <h1 className="large-title">{ticket.event_name}</h1>
              
              <img src={ticket.temp_file_url} alt="Билет" style={{width: '100%', borderRadius: 'var(--radius)'}} />
@@ -509,7 +509,5 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         </div>
     );
 }
-
-
 
 export default App;
