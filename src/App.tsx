@@ -1,11 +1,11 @@
-// viago/frontend/src/App.tsx - v6.1 (Build Fixed)
+// viago/frontend/src/App.tsx - v6.2 (Final Build Fix)
 import React, { useState, useEffect } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
-import { 
-    HomeIcon, HomeIconFilled, 
-    PlusSquareIcon, PlusSquareIconFilled, 
-    UserIcon, UserIconFilled, 
-    SearchIcon, ArrowLeftIcon 
+import {
+    HomeIcon, HomeIconFilled,
+    PlusSquareIcon, PlusSquareIconFilled,
+    UserIcon, UserIconFilled,
+    SearchIcon, ArrowLeftIcon
 } from './Icons';
 import './App.css';
 
@@ -59,7 +59,7 @@ function App() {
       .then(data => setUser({ ...data, balance: parseFloat(data.balance) }))
       .catch(err => setError(err.message));
   }, [initDataRaw]);
-  
+
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
   if (!user) return null; // Or a full-page loader
 
@@ -67,7 +67,8 @@ function App() {
     <div className="app-container">
       <main className="page-container">
         {activeTab === 'catalog' && <CatalogView />}
-        {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog')} />}
+        {/* --- FIX IS HERE --- */}
+        {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog' as Tab)} />}
         {activeTab === 'profile' && <ProfileView user={user} />}
       </main>
       <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -79,7 +80,7 @@ function App() {
 
 function CatalogView() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  
+
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/tickets/`)
       .then(res => res.json())
@@ -142,13 +143,13 @@ function ProfileView({ user }: { user: User }) {
 function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
   const [step, setStep] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
-  
-  const handleEventSelect = (event: EventInfo) => { 
-    setSelectedEvent(event); 
-    setStep(2); 
+
+  const handleEventSelect = (event: EventInfo) => {
+    setSelectedEvent(event);
+    setStep(2);
   };
-  const handleBack = () => { 
-    setStep(1); 
+  const handleBack = () => {
+    setStep(1);
     setSelectedEvent(null);
   };
   const handleComplete = () => {
@@ -162,7 +163,7 @@ function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | u
   if (step === 2 && selectedEvent) {
     return <AddTicketView event={selectedEvent} onBack={handleBack} onTicketAdded={handleComplete} initDataRaw={initDataRaw} />;
   }
-  
+
   return null;
 }
 
@@ -195,10 +196,10 @@ function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) 
                 <input type="text" placeholder="Найдите ваше событие" value={query} onChange={e => setQuery(e.target.value)} autoFocus />
             </div>
             <div className="list-container">
-                {loading && <p>Поиск...</p>}
-                {!loading && query.length > 1 && results.length === 0 && <p>Ничего не найдено</p>}
+                {loading && <p style={{textAlign: 'center', color: 'var(--ios-label-secondary)'}}>Поиск...</p>}
+                {!loading && query.length > 1 && results.length === 0 && <p style={{textAlign: 'center', color: 'var(--ios-label-secondary)'}}>Ничего не найдено</p>}
                 {results.map((event, index) => (
-                    <div key={index} className="list-card" onClick={() => onEventSelect(event)}>
+                    <div key={index} className="list-card" onClick={() => onEventSelect(event)} style={{cursor: 'pointer'}}>
                         <h3>{event.event_name}</h3>
                         <p className="subtitle">{event.venue}, {event.city}</p>
                     </div>
