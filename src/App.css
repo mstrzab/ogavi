@@ -186,3 +186,25 @@ body {
   color: var(--ios-label-primary);
   margin: 0 0 8px 0;
 }
+
+
+
+
+.list-container .link-button {
+  background: none;
+  border: none;
+  color: var(--ios-blue);
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 16px;
+  margin-top: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.list-card .separator {
+  height: 0.5px;
+  background-color: var(--ios-separator);
+  margin: 12px -20px; /* Выходим за пределы padding'а карточки */
+}

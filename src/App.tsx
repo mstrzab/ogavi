@@ -1,10 +1,6 @@
-// viago/frontend/src/App.tsx - v7.2 (Final Popup API Fix)
-import React, { useState, useEffect } from 'react';
-import { 
-    useRawInitData, 
-    hapticFeedback, 
-    showPopup, // Only showPopup is needed for both alerts and confirmations
-} from '@telegram-apps/sdk-react';
+// viago/frontend/src/App.tsx - v8.0 Active Search & Create Event Flow
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRawInitData, hapticFeedback, showPopup } from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
     PlusSquareIcon, PlusSquareIconFilled,
@@ -89,6 +85,7 @@ function App() {
 function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   const initDataRaw = useRawInitData();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTickets = () => {
     fetch(`${BACKEND_URL}/api/tickets/`)
@@ -97,24 +94,30 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
       .catch(console.error);
   };
   useEffect(fetchTickets, []);
+  
+  const filteredTickets = useMemo(() => {
+    const available = tickets.filter(t => t.status === 'available');
+    if (!searchQuery) {
+        return available;
+    }
+    return available.filter(ticket => 
+        ticket.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.venue.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [tickets, searchQuery]);
 
   const handleBuy = async (ticket: Ticket) => {
     try {
-        // Correct way to show a confirmation dialog
         const buttonId = await showPopup({
             title: 'Подтверждение',
             message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
-            buttons: [
-                { id: 'buy', type: 'default', text: 'Купить' },
-                { type: 'cancel' },
-            ],
+            buttons: [ { id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' } ],
         });
         
         if (buttonId === 'buy') {
             hapticFeedback.impactOccurred('medium');
             const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
-                method: 'POST',
-                headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
+                method: 'POST', headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
             });
             if (!response.ok) {
                 const err = await response.json();
@@ -132,17 +135,20 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
     }
   };
 
-  const availableTickets = tickets.filter(t => t.status === 'available');
-
   return (
     <>
       <h1 className="large-title">События</h1>
       <div className="search-bar">
         <SearchIcon />
-        <input type="text" placeholder="Поиск" />
+        <input 
+            type="text" 
+            placeholder="Поиск по названию или месту" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
       <div className="list-container">
-        {availableTickets.length > 0 ? availableTickets.map(ticket => (
+        {filteredTickets.length > 0 ? filteredTickets.map(ticket => (
           <div key={ticket.id} className="list-card">
             <h3>{ticket.event_name}</h3>
             <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
@@ -153,8 +159,8 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
           </div>
         )) : (
           <div className="info-card">
-            <h4>Нет билетов в продаже</h4>
-            <p>Загляните позже</p>
+            <h4>{searchQuery ? 'Ничего не найдено' : 'Нет билетов в продаже'}</h4>
+            <p>{searchQuery ? 'Попробуйте изменить запрос' : 'Загляните позже'}</p>
           </div>
         )}
       </div>
@@ -177,12 +183,10 @@ function ProfileView({ user }: { user: User }) {
             <span>{user.balance.toFixed(2)} ₽</span>
         </div>
       </div>
-
       <div className="segmented-control">
         <button onClick={() => setSegment('myTickets')} className={segment === 'myTickets' ? 'active' : ''}>Мои билеты</button>
         <button onClick={() => setSegment('forSale')} className={segment === 'forSale' ? 'active' : ''}>На продаже</button>
       </div>
-
       {segment === 'myTickets' && <MyTicketsList />}
       {segment === 'forSale' && <SellingTicketsList />}
     </>
@@ -196,13 +200,10 @@ function MyTicketsList() {
     useEffect(() => {
         if (!initDataRaw) return;
         fetch(`${BACKEND_URL}/api/users/me/tickets/purchased`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
-            .then(res => res.json())
-            .then(data => setTickets(data))
-            .catch(console.error);
+            .then(res => res.json()).then(setTickets).catch(console.error);
     }, [initDataRaw]);
 
     if (tickets.length === 0) return <div className="info-card">У вас пока нет купленных билетов.</div>;
-
     return (
         <div className="list-container">
             {tickets.map(ticket => (
@@ -222,13 +223,10 @@ function SellingTicketsList() {
     useEffect(() => {
         if (!initDataRaw) return;
         fetch(`${BACKEND_URL}/api/users/me/tickets/selling`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
-            .then(res => res.json())
-            .then(data => setTickets(data))
-            .catch(console.error);
+            .then(res => res.json()).then(setTickets).catch(console.error);
     }, [initDataRaw]);
 
     if (tickets.length === 0) return <div className="info-card">У вас нет билетов на продаже.</div>;
-
     return (
         <div className="list-container">
             {tickets.map(ticket => (
@@ -241,51 +239,46 @@ function SellingTicketsList() {
     );
 }
 
-
 function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
   const [step, setStep] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
 
-  const handleEventSelect = (event: EventInfo) => {
+  const proceedToAddDetails = (event: EventInfo) => {
     setSelectedEvent(event);
     setStep(2);
   };
-  const handleBack = () => {
+  const proceedToCreateEvent = () => setStep(3);
+  const handleBackToSearch = () => {
     setStep(1);
     setSelectedEvent(null);
   };
-  const handleComplete = () => {
-    onFlowComplete();
-  };
 
-  if (step === 1) {
-    return <EventSearchView onEventSelect={handleEventSelect} />;
+  switch (step) {
+    case 1:
+      return <EventSearchView onEventSelect={proceedToAddDetails} onCreateNew={proceedToCreateEvent} />;
+    case 2:
+      return <AddTicketView event={selectedEvent!} onBack={handleBackToSearch} onTicketAdded={onFlowComplete} initDataRaw={initDataRaw} />;
+    case 3:
+      return <CreateEventView onBack={handleBackToSearch} onEventCreated={proceedToAddDetails} />;
+    default:
+      return null;
   }
-
-  if (step === 2 && selectedEvent) {
-    return <AddTicketView event={selectedEvent} onBack={handleBack} onTicketAdded={handleComplete} initDataRaw={initDataRaw} />;
-  }
-
-  return null;
 }
 
-function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) => void }) {
+function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event: EventInfo) => void, onCreateNew: () => void }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<EventInfo[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (query.length < 2) {
-            setResults([]);
-            return;
+            setResults([]); return;
         }
         const handler = setTimeout(() => {
             setLoading(true);
             fetch(`${BACKEND_URL}/api/events/search?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
-                .then(data => setResults(data))
-                .catch(console.error)
-                .finally(() => setLoading(false));
+                .then(res => res.json()).then(setResults)
+                .catch(console.error).finally(() => setLoading(false));
         }, 500);
         return () => clearTimeout(handler);
     }, [query]);
@@ -299,14 +292,52 @@ function EventSearchView({ onEventSelect }: { onEventSelect: (event: EventInfo) 
             </div>
             <div className="list-container">
                 {loading && <p style={{textAlign: 'center', color: 'var(--ios-label-secondary)'}}>Поиск...</p>}
-                {!loading && query.length > 1 && results.length === 0 && <p style={{textAlign: 'center', color: 'var(--ios-label-secondary)'}}>Ничего не найдено</p>}
                 {results.map((event, index) => (
                     <div key={index} className="list-card" onClick={() => onEventSelect(event)} style={{cursor: 'pointer'}}>
                         <h3>{event.event_name}</h3>
                         <p className="subtitle">{event.venue}, {event.city}</p>
                     </div>
                 ))}
+                {!loading && query.length > 0 && (
+                    <button onClick={onCreateNew} className="link-button">
+                        Не нашли свое событие? Создать новое
+                    </button>
+                )}
             </div>
+        </>
+    );
+}
+
+function CreateEventView({ onBack, onEventCreated }: { onBack: () => void, onEventCreated: (event: EventInfo) => void }) {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const newEvent: EventInfo = {
+            event_name: formData.get('event_name') as string,
+            event_date: formData.get('event_date') as string,
+            city: formData.get('city') as string,
+            venue: formData.get('venue') as string,
+        };
+        if (!newEvent.event_name || !newEvent.event_date || !newEvent.city || !newEvent.venue) {
+            showPopup({ title: "Ошибка", message: "Пожалуйста, заполните все поля." });
+            return;
+        }
+        onEventCreated(newEvent);
+    };
+
+    return (
+        <>
+            <div style={{display: 'flex', alignItems: 'center', margin: '16px 0'}}>
+                <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}><ArrowLeftIcon /></button>
+                <h1 className="large-title" style={{margin: '0 auto', paddingRight: '24px' }}>Новое событие</h1>
+            </div>
+            <form onSubmit={handleSubmit} className="form-container">
+                <input name="event_name" placeholder="Название мероприятия" required />
+                <input name="event_date" type="date" placeholder="Дата" required />
+                <input name="city" placeholder="Город" required />
+                <input name="venue" placeholder="Место проведения" required />
+                <button type="submit" className="apple-button">Продолжить</button>
+            </form>
         </>
     );
 }
@@ -318,23 +349,18 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!initDataRaw) {
-            setFormError("Ошибка аутентификации. Перезапустите приложение.");
-            return;
+            setFormError("Ошибка аутентификации. Перезапустите приложение."); return;
         }
         setSubmitting(true);
         setFormError('');
-
         const formData = new FormData(e.currentTarget);
         formData.append('event_name', event.event_name);
         formData.append('event_date', event.event_date);
         formData.append('city', event.city);
         formData.append('venue', event.venue);
-
         try {
             const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
-                method: 'POST',
-                headers: { 'X-Telegram-Init-Data': initDataRaw },
-                body: formData,
+                method: 'POST', headers: { 'X-Telegram-Init-Data': initDataRaw }, body: formData,
             });
             if (!response.ok) {
                 const err = await response.json();
