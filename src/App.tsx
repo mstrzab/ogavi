@@ -1,6 +1,6 @@
-// viago/frontend/src/App.tsx - v7.0 Functional Purchase Cycle
+// viago/frontend/src/App.tsx - v7.1 (Correct SDK Usage)
 import React, { useState, useEffect } from 'react';
-import { useRawInitData, useHapticFeedback, usePopup } from '@telegram-apps/sdk-react';
+import { useRawInitData, useWebApp } from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
     PlusSquareIcon, PlusSquareIconFilled,
@@ -84,8 +84,8 @@ function App() {
 
 function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   const initDataRaw = useRawInitData();
-  const haptic = useHapticFeedback();
-  const popup = usePopup();
+  // --- FIX IS HERE: Using the main webApp hook ---
+  const webApp = useWebApp();
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const fetchTickets = () => {
@@ -97,30 +97,36 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   useEffect(fetchTickets, []);
 
   const handleBuy = async (ticket: Ticket) => {
-    const isConfirmed = await popup.open({
-        title: 'Подтверждение',
-        message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
-        buttons: [{ id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' }]
-    });
+    try {
+      // --- Using webApp.showPopup ---
+      const buttonId = await webApp.showPopup({
+          title: 'Подтверждение',
+          message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
+          buttons: [{ id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' }]
+      });
 
-    if (isConfirmed && isConfirmed.id === 'buy') {
-        haptic.impactOccurred('medium');
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
-                method: 'POST',
-                headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Не удалось купить билет');
-            }
-            popup.open({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
-            onPurchase();
-            fetchTickets();
-        } catch (err) {
-            haptic.notificationOccurred('error');
-            popup.open({ title: 'Ошибка', message: (err as Error).message });
+      if (buttonId === 'buy') {
+          // --- Using webApp.HapticFeedback ---
+          webApp.HapticFeedback.impactOccurred('medium');
+          const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
+              method: 'POST',
+              headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
+          });
+          if (!response.ok) {
+              const err = await response.json();
+              throw new Error(err.detail || 'Не удалось купить билет');
+          }
+          webApp.showPopup({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
+          onPurchase();
+          fetchTickets();
+      }
+    } catch (err) {
+        // The showPopup promise rejects if the popup is closed
+        if (err instanceof Error) {
+            webApp.HapticFeedback.notificationOccurred('error');
+            webApp.showPopup({ title: 'Ошибка', message: err.message });
         }
+        console.error(err);
     }
   };
 
