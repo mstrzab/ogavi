@@ -1,6 +1,6 @@
-// viago/frontend/src/App.tsx - v6.2 (Final Build Fix)
+// viago/frontend/src/App.tsx - v7.0 Functional Purchase Cycle
 import React, { useState, useEffect } from 'react';
-import { useRawInitData } from '@telegram-apps/sdk-react';
+import { useRawInitData, useHapticFeedback, usePopup } from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
     PlusSquareIcon, PlusSquareIconFilled,
@@ -12,6 +12,7 @@ import './App.css';
 // --- Типы и Константы ---
 const BACKEND_URL = "https://api.goviago.ru";
 type Tab = 'catalog' | 'sell' | 'profile';
+type ProfileSegment = 'myTickets' | 'forSale';
 
 interface User {
   id: number;
@@ -26,6 +27,9 @@ interface Ticket {
   venue: string;
   price: number;
   status: 'available' | 'sold' | 'archived';
+  sector?: string;
+  row?: string;
+  seat?: string;
 }
 interface EventInfo {
   event_name: string;
@@ -41,13 +45,12 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
 
-  useEffect(() => {
+  const fetchUser = () => {
     if (!initDataRaw) {
       console.warn("DEV MODE: No Telegram InitData. Using mock user.");
       setUser({ id: 999, first_name: "Dev User", rating: 5.0, balance: 15000 });
       return;
     }
-
     fetch(`${BACKEND_URL}/api/validate_user`, {
       method: 'POST',
       headers: { 'X-Telegram-Init-Data': initDataRaw },
@@ -58,7 +61,9 @@ function App() {
       })
       .then(data => setUser({ ...data, balance: parseFloat(data.balance) }))
       .catch(err => setError(err.message));
-  }, [initDataRaw]);
+  };
+
+  useEffect(fetchUser, [initDataRaw]);
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
   if (!user) return null; // Or a full-page loader
@@ -66,9 +71,8 @@ function App() {
   return (
     <div className="app-container">
       <main className="page-container">
-        {activeTab === 'catalog' && <CatalogView />}
-        {/* --- FIX IS HERE --- */}
-        {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog' as Tab)} />}
+        {activeTab === 'catalog' && <CatalogView onPurchase={fetchUser} />}
+        {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog')} />}
         {activeTab === 'profile' && <ProfileView user={user} />}
       </main>
       <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -78,15 +82,47 @@ function App() {
 
 // --- Компоненты Экранов ---
 
-function CatalogView() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+function CatalogView({ onPurchase }: { onPurchase: () => void }) {
+  const initDataRaw = useRawInitData();
+  const haptic = useHapticFeedback();
+  const popup = usePopup();
 
-  useEffect(() => {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const fetchTickets = () => {
     fetch(`${BACKEND_URL}/api/tickets/`)
       .then(res => res.json())
       .then(data => setTickets(data.map((t: any) => ({...t, price: parseFloat(t.price)}))))
       .catch(console.error);
-  }, []);
+  };
+  useEffect(fetchTickets, []);
+
+  const handleBuy = async (ticket: Ticket) => {
+    const isConfirmed = await popup.open({
+        title: 'Подтверждение',
+        message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
+        buttons: [{ id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' }]
+    });
+
+    if (isConfirmed && isConfirmed.id === 'buy') {
+        haptic.impactOccurred('medium');
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
+                method: 'POST',
+                headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Не удалось купить билет');
+            }
+            popup.open({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
+            onPurchase();
+            fetchTickets();
+        } catch (err) {
+            haptic.notificationOccurred('error');
+            popup.open({ title: 'Ошибка', message: (err as Error).message });
+        }
+    }
+  };
 
   const availableTickets = tickets.filter(t => t.status === 'available');
 
@@ -104,7 +140,7 @@ function CatalogView() {
             <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
             <div className="footer">
               <span className="price">{ticket.price.toFixed(0)} ₽</span>
-              <button className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
+              <button onClick={() => handleBuy(ticket)} className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
             </div>
           </div>
         )) : (
@@ -119,6 +155,7 @@ function CatalogView() {
 }
 
 function ProfileView({ user }: { user: User }) {
+  const [segment, setSegment] = useState<ProfileSegment>('myTickets');
   return (
     <>
       <h1 className="large-title">Профиль</h1>
@@ -131,14 +168,69 @@ function ProfileView({ user }: { user: User }) {
             <span>Баланс</span>
             <span>{user.balance.toFixed(2)} ₽</span>
         </div>
-        <div className="profile-row">
-            <span>Рейтинг</span>
-            <span>{user.rating.toFixed(1)}</span>
-        </div>
       </div>
+
+      <div className="segmented-control">
+        <button onClick={() => setSegment('myTickets')} className={segment === 'myTickets' ? 'active' : ''}>Мои билеты</button>
+        <button onClick={() => setSegment('forSale')} className={segment === 'forSale' ? 'active' : ''}>На продаже</button>
+      </div>
+
+      {segment === 'myTickets' && <MyTicketsList />}
+      {segment === 'forSale' && <SellingTicketsList />}
     </>
   );
 }
+
+function MyTicketsList() {
+    const initDataRaw = useRawInitData();
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+
+    useEffect(() => {
+        fetch(`${BACKEND_URL}/api/users/me/tickets/purchased`, { headers: { 'X-Telegram-Init-Data': initDataRaw || '' }})
+            .then(res => res.json())
+            .then(data => setTickets(data))
+            .catch(console.error);
+    }, [initDataRaw]);
+
+    if (tickets.length === 0) return <div className="info-card">У вас пока нет купленных билетов.</div>;
+
+    return (
+        <div className="list-container">
+            {tickets.map(ticket => (
+                <div key={ticket.id} className="list-card">
+                    <h3>{ticket.event_name}</h3>
+                    <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function SellingTicketsList() {
+    const initDataRaw = useRawInitData();
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+
+    useEffect(() => {
+        fetch(`${BACKEND_URL}/api/users/me/tickets/selling`, { headers: { 'X-Telegram-Init-Data': initDataRaw || '' }})
+            .then(res => res.json())
+            .then(data => setTickets(data))
+            .catch(console.error);
+    }, [initDataRaw]);
+
+    if (tickets.length === 0) return <div className="info-card">У вас нет билетов на продаже.</div>;
+
+    return (
+        <div className="list-container">
+            {tickets.map(ticket => (
+                <div key={ticket.id} className="list-card">
+                    <h3>{ticket.event_name}</h3>
+                    <p className="subtitle">Цена: {ticket.price.toFixed(0)} ₽</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 
 function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
   const [step, setStep] = useState(1);
@@ -274,6 +366,7 @@ function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (ta
     { id: 'sell', label: 'Продать', icon: <PlusSquareIcon />, activeIcon: <PlusSquareIconFilled /> },
     { id: 'profile', label: 'Профиль', icon: <UserIcon />, activeIcon: <UserIconFilled /> },
   ];
+
   return (
     <div className="tab-bar">
       {tabs.map(tab => (
