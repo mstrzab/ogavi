@@ -246,7 +246,7 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
         <button type="submit" className="buy-btn" disabled={submitting}>
           {submitting ? 'Отправка...' : 'Выставить на продажу'}
         </button>
-        {/* ... */}
+        {formError && <p className="error-text">{formError}</p>}
       </form>
     </div>
   );
