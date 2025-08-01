@@ -269,12 +269,11 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
 }
 
 function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (tab: Tab) => void }) {
-  const tabs = [
+  const tabs: { id: Tab; label: string; icon: JSX.Element; activeIcon: JSX.Element }[] = [
     { id: 'catalog', label: 'События', icon: <HomeIcon />, activeIcon: <HomeIconFilled /> },
     { id: 'sell', label: 'Продать', icon: <PlusSquareIcon />, activeIcon: <PlusSquareIconFilled /> },
     { id: 'profile', label: 'Профиль', icon: <UserIcon />, activeIcon: <UserIconFilled /> },
   ];
-
   return (
     <div className="tab-bar">
       {tabs.map(tab => (
