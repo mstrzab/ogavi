@@ -1,5 +1,5 @@
 // viago/frontend/src/App.tsx - v3.0
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRawInitData } from '@telegram-apps/sdk-react';
 import { HomeIcon, PlusSquareIcon, UserIcon, SearchIcon, ArrowLeftIcon } from './Icons';
 import './App.css';

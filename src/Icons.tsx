@@ -1,5 +1,4 @@
 // viago/frontend/src/Icons.tsx
-import React from 'react';
 
 const iconProps = {
   width: "28",
