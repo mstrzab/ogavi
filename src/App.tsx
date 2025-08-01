@@ -44,6 +44,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
+  const [viewingTicketId, setViewingTicketId] = useState<number | null>(null);
 
   const fetchUser = () => {
     if (!initDataRaw) {
@@ -67,7 +68,9 @@ function App() {
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
   if (!user) return null;
-
+  if (viewingTicketId) {
+    return <TicketDetailView ticketId={viewingTicketId} onBack={() => setViewingTicketId(null)} />;
+  }
   return (
     <div className="app-container">
       <main className="page-container">
@@ -168,7 +171,8 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   );
 }
 
-function ProfileView({ user }: { user: User }) {
+function ProfileView({ user, onViewTicket }: { user: User, onViewTicket: (id: number) => void }) {
+
   const [segment, setSegment] = useState<ProfileSegment>('myTickets');
   return (
     <>
@@ -187,13 +191,13 @@ function ProfileView({ user }: { user: User }) {
         <button onClick={() => setSegment('myTickets')} className={segment === 'myTickets' ? 'active' : ''}>Мои билеты</button>
         <button onClick={() => setSegment('forSale')} className={segment === 'forSale' ? 'active' : ''}>На продаже</button>
       </div>
-      {segment === 'myTickets' && <MyTicketsList />}
+      {segment === 'myTickets' && <MyTicketsList onViewTicket={onViewTicket}/>}
       {segment === 'forSale' && <SellingTicketsList />}
     </>
   );
 }
 
-function MyTicketsList() {
+function MyTicketsList({onViewTicket}: {ownViewTicket: (id: number) => void}) {
     const initDataRaw = useRawInitData();
     const [tickets, setTickets] = useState<Ticket[]>([]);
 
@@ -207,9 +211,11 @@ function MyTicketsList() {
     return (
         <div className="list-container">
             {tickets.map(ticket => (
-                <div key={ticket.id} className="list-card">
+                <div key={ticket.id} className="list-card" onClick={() => onViewTicket(ticket.id)} style={{cursor: 'pointer'}}>
                     <h3>{ticket.event_name}</h3>
                     <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
+                    <div className="footer"> <span className="price">{ticket.price.toFixed(0) р. </span> 
+                    </div>
                 </div>
             ))}
         </div>
@@ -414,5 +420,96 @@ function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (ta
     </div>
   );
 }
+
+function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void; }) {
+    const initDataRaw = useRawInitData();
+    const [ticket, setTicket] = useState<(Ticket & { temp_file_url: string }) | null>(null);
+    const [error, setError] = useState('');
+    const [showSeat, setShowSeat] = useState(false);
+
+    // Функция для получения уровня заряда батареи
+    const getBatteryLevel = async (): Promise<number | undefined> => {
+        try {
+            // @ts-ignore - The Battery API is not fully standardized in TS yet
+            const battery = await navigator.getBattery();
+            return Math.round(battery.level * 100);
+        } catch (e) {
+            console.warn("Battery API not supported:", e);
+            return undefined;
+        }
+    };
+
+    // Функция для отправки данных верификации
+    const recordVerification = async (point: 'a' | 'b') => {
+        const battery = await getBatteryLevel();
+        try {
+            await fetch(`${BACKEND_URL}/api/tickets/${ticketId}/verify/${point}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initDataRaw || ''
+                },
+                body: JSON.stringify({ battery }),
+            });
+        } catch (e) {
+            console.error(`Failed to record verification point ${point}:`, e);
+        }
+    };
+
+    // Загрузка данных билета и запись точки "А"
+    useEffect(() => {
+        const fetchDetails = async () => {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/tickets/${ticketId}/details`, {
+                    headers: { 'X-Telegram-Init-Data': initDataRaw || '' }
+                });
+                if (!response.ok) throw new Error('Не удалось загрузить детали билета.');
+                const data = await response.json();
+                setTicket(data);
+                // Записываем точку "А" сразу после успешной загрузки
+                recordVerification('a');
+            } catch (err) {
+                setError((err as Error).message);
+            }
+        };
+        fetchDetails();
+    }, [ticketId, initDataRaw]);
+    
+    const handleShowSeat = () => {
+        setShowSeat(true);
+        // Записываем точку "Б" при показе места
+        recordVerification('b');
+        hapticFeedback.impactOccurred('heavy');
+    };
+
+    if (error) return <div className="info-card">{error} <button onClick={onBack}>Назад</button></div>;
+    if (!ticket) return <div className="info-card">Загрузка билета...</div>;
+
+    return (
+        <div className="ticket-detail-view">
+             <button onClick={onBack} className="back-button"><ArrowLeftIcon /> Назад</button>
+             <h1 className="large-title">{ticket.event_name}</h1>
+             
+             <img src={ticket.temp_file_url} alt="Билет" style={{width: '100%', borderRadius: 'var(--radius)'}} />
+
+             <div className="list-card" style={{marginTop: '24px'}}>
+                {showSeat ? (
+                    <div className="seat-info">
+                        <h3>Ваше место</h3>
+                        <p>Сектор: {ticket.sector || 'N/A'}</p>
+                        <p>Ряд: {ticket.row || 'N/A'}</p>
+                        <p>Место: {ticket.seat || 'N/A'}</p>
+                    </div>
+                ) : (
+                    <button onClick={handleShowSeat} className="apple-button">
+                        Показать моё место
+                    </button>
+                )}
+             </div>
+        </div>
+    );
+}
+
+
 
 export default App;
