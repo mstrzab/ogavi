@@ -19,15 +19,23 @@ interface EventInfo { event_name: string; event_date: string; city: string; venu
 
 // --- Utility & Reusable Components (Defined First!) ---
 
-const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => 
-  <div className="form-field">
-      <label htmlFor={name}>{label}</label>
-      <input 
-        id={name} name={name} type={type} placeholder={placeholder || ''} 
-        required={required} value={value || ''} onChange={onChange} 
-      />
-  </div>
-);
+
+const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => {
+  // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавляем onFocus и onBlur для управления клавиатурой ***
+  const handleFocus = () => viewport?.setCustomInputAccessoryView(false);
+  const handleBlur = () => viewport?.setCustomInputAccessoryView(true);
+
+  return (
+    <div className="form-field">
+        <label htmlFor={name}>{label}</label>
+        <input 
+          id={name} name={name} type={type} placeholder={placeholder || ''} 
+          required={required} value={value} onChange={onChange} 
+          onFocus={handleFocus} onBlur={handleBlur}
+        />
+    </div>
+  );
+};
 
 const FileInput = ({ name }: { name: string }) => {
   const [fileName, setFileName] = useState('');
