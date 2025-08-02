@@ -111,7 +111,7 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
   const initDataRaw = useRawInitData();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null();
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null());
 
 
   const fetchTickets = () => {
