@@ -288,7 +288,7 @@ function ProfileView({ user, isAdmin, onViewTicket }: { user: User; isAdmin: boo
       <div className="list-card">
         <div className="profile-row">
             <span>Имя</span>
-            <span>{user.first_name} {isAdmin && (Admin)</span>
+            <span>{user.first_name} {isAdmin && (Admin)}</span>
         </div>
         <div className="profile-row">
             <span>Баланс</span>
