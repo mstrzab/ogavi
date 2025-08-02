@@ -98,6 +98,10 @@ function App() {
   };
 
   useEffect(fetchUser, [initDataRaw]);
+ 
+  const handleViewTicket = (id: number) => {
+    setViewingTicketId(id);
+  };
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
   if (!user) return <div className="info-card">Загрузка пользователя...</div>;
