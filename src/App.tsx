@@ -142,8 +142,8 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
     }
     const lowercasedQuery = searchQuery.toLowerCase();
     return available.filter(ticket => 
-        ticket.event_name.toLowerCase().includes(lowercasedQuery) ||
-        ticket.venue.toLowerCase().includes(lowercasedQuery)
+        ticket.event.event_name.toLowerCase().includes(lowercasedQuery) ||
+        ticket.event.venue.toLowerCase().includes(lowercasedQuery)
     );
   }, [tickets, searchQuery]);
 
@@ -151,7 +151,7 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
     try {
         const buttonId = await showPopup({
             title: 'Подтверждение',
-            message: `Купить билет на "${ticket.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
+            message: `Купить билет на "${ticket.event.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
             buttons: [ { id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' } ],
         });
         
@@ -196,8 +196,8 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
       <div className="list-container">
         {filteredTickets.length > 0 ? filteredTickets.map(ticket => (
           <div key={ticket.id} className="list-card">
-            <h3>{ticket.event_name}</h3>
-            <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
+            <h3>{ticket.event.event_name}</h3>
+            <p className="subtitle">{new Date(ticket.event.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.event.venue}</p>
             <div className="footer">
               <span className="price">{ticket.price.toFixed(0)} ₽</span>
               <button onClick={() => handleBuy(ticket)} className="primary-button" style={{width: 'auto', padding: '12px 24px', fontSize: '16px'}}>Купить</button>
@@ -325,8 +325,8 @@ function MyTicketsList({ onViewTicket }: { onViewTicket: (id: number) => void; }
         <div className="list-container">
             {tickets.map(ticket => (
                 <div key={ticket.id} className="list-card" onClick={() => onViewTicket(ticket.id)} style={{cursor: 'pointer'}}>
-                    <h3>{ticket.event_name}</h3>
-                    <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
+                    <h3>{ticket.event.event_name}</h3>
+                    <p className="subtitle">{new Date(ticket.event.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.event.venue}</p>
                 </div>
             ))}
         </div>
@@ -347,7 +347,7 @@ function SellingTicketsList() {
         <div className="list-container">
             {tickets.map(ticket => (
                 <div key={ticket.id} className="list-card">
-                    <h3>{ticket.event_name}</h3>
+                    <h3>{ticket.event.event_name}</h3>
                     <p className="subtitle">Цена: {ticket.price.toFixed(0)} ₽</p>
                 </div>
             ))}
@@ -594,7 +594,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     return (
         <div className="ticket-detail-view" style={{padding: '16px'}}>
              <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'var(--color-accent-main)', fontSize: '17px', gap: '4px' }}><ArrowLeftIcon /> Профиль</button>
-             <h1 className="large-title">{ticket.event_name}</h1>
+             <h1 className="large-title">{ticket.event.event_name}</h1>
              
              <img src={ticket.temp_file_url} alt="Билет" style={{width: '100%', borderRadius: 'var(--radius-card)'}} />
 
