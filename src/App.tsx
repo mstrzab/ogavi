@@ -1,6 +1,11 @@
-// viago/frontend/src/App.tsx - v9.1 (Prop Drilling Fix)
+// viago/frontend/src/App.tsx - v10.1 (Complete & Unabridged)
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRawInitData, hapticFeedback, showPopup } from '@telegram-apps/sdk-react';
+import {
+    useRawInitData,
+    hapticFeedback,
+    showPopup,
+    viewport // Import viewport to control the Mini App window
+} from '@telegram-apps/sdk-react';
 import {
     HomeIcon, HomeIconFilled,
     PlusSquareIcon, PlusSquareIconFilled,
@@ -9,8 +14,11 @@ import {
 } from './Icons';
 import './App.css';
 
-// --- Типы и Константы ---
+// --- Types and Constants ---
 const BACKEND_URL = "https://api.goviago.ru";
+
+const ADMIN_TELEGRAM_ID=1057323678	
+
 type Tab = 'catalog' | 'sell' | 'profile';
 type ProfileSegment = 'myTickets' | 'forSale';
 
@@ -19,6 +27,7 @@ interface User {
   first_name: string;
   rating: number;
   balance: number;
+  held_balance?: number; // Optional for compatibility
 }
 interface Ticket {
   id: number;
@@ -38,7 +47,7 @@ interface EventInfo {
   venue: string;
 }
 
-// --- Основной компонент App ---
+// --- Main App Component ---
 function App() {
   const initDataRaw = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
@@ -46,10 +55,21 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
   const [viewingTicketId, setViewingTicketId] = useState<number | null>(null);
 
+  // NEW: Expand the Mini App to full screen on initial load
+  useEffect(() => {
+    if (user) {
+        setIsAdmin(user.id === ADMIN_TELEGRAM_ID);
+      }
+
+    if (viewport) {
+      viewport.expand();
+    }
+  }, [user]);
+
   const fetchUser = () => {
     if (!initDataRaw) {
       console.warn("DEV MODE: No Telegram InitData. Using mock user.");
-      setUser({ id: 999, first_name: "Dev User", rating: 5.0, balance: 15000 });
+      setUser({ id: 999, first_name: "Dev User", rating: 5.0, balance: 15000, held_balance: 2500 });
       return;
     }
     fetch(`${BACKEND_URL}/api/validate_user`, {
@@ -67,7 +87,7 @@ function App() {
   useEffect(fetchUser, [initDataRaw]);
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
-  if (!user) return null;
+  if (!user) return <div className="info-card">Загрузка пользователя...</div>;
   
   if (viewingTicketId) {
     return <TicketDetailView ticketId={viewingTicketId} onBack={() => setViewingTicketId(null)} />;
@@ -76,21 +96,23 @@ function App() {
   return (
     <div className="app-container">
       <main className="page-container">
-        {activeTab === 'catalog' && <CatalogView onPurchase={fetchUser} />}
+        {activeTab === 'catalog' && <CatalogView isAdmin={isAdmin} onPurchase={fetchUser} />}
         {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog')} />}
-        {activeTab === 'profile' && <ProfileView user={user} onViewTicket={setViewingTicketId} />}
+        {activeTab === 'profile' && <ProfileView user={user} isAdmin={isAdmin} onViewTicket={setViewingTicketId} />}
       </main>
       <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }
 
-// --- Компоненты Экранов ---
+// --- Screen Components ---
 
-function CatalogView({ onPurchase }: { onPurchase: () => void }) {
+function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: () => void }) {
   const initDataRaw = useRawInitData();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null();
+
 
   const fetchTickets = () => {
     fetch(`${BACKEND_URL}/api/tickets/`)
@@ -102,12 +124,13 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
   
   const filteredTickets = useMemo(() => {
     const available = tickets.filter(t => t.status === 'available');
-    if (!searchQuery) {
+    if (!searchQuery.trim()) {
         return available;
     }
+    const lowercasedQuery = searchQuery.toLowerCase();
     return available.filter(ticket => 
-        ticket.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.venue.toLowerCase().includes(searchQuery.toLowerCase())
+        ticket.event_name.toLowerCase().includes(lowercasedQuery) ||
+        ticket.venue.toLowerCase().includes(lowercasedQuery)
     );
   }, [tickets, searchQuery]);
 
@@ -140,6 +163,11 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
     }
   };
 
+  const handleCoverUpdated = () => {
+    setEditingEvent(null);
+    fetchTickets(); // Обновляем список, чтобы увидеть новую обложку
+  };
+
   return (
     <>
       <h1 className="large-title">События</h1>
@@ -147,7 +175,7 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
         <SearchIcon />
         <input 
             type="text" 
-            placeholder="Поиск по названию или месту" 
+            placeholder="Поиск..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -159,18 +187,84 @@ function CatalogView({ onPurchase }: { onPurchase: () => void }) {
             <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
             <div className="footer">
               <span className="price">{ticket.price.toFixed(0)} ₽</span>
-              <button onClick={() => handleBuy(ticket)} className="apple-button" style={{width: 'auto', padding: '8px 16px', fontSize: '15px'}}>Купить</button>
+              <button onClick={() => handleBuy(ticket)} className="primary-button" style={{width: 'auto', padding: '12px 24px', fontSize: '16px'}}>Купить</button>
             </div>
-          </div>
+               {isAdmin && (
+              <button onClick={() => setEditingEvent(ticket.event)} className="admin-edit-btn">
+                Edit Cover
+              </button>
+              )}
+           </div>
         )) : (
           <div className="info-card">
-            <h4>{searchQuery ? 'Ничего не найдено' : 'Нет билетов в продаже'}</h4>
-            <p>{searchQuery ? 'Попробуйте изменить запрос' : 'Загляните позже'}</p>
+            <h4>{searchQuery ? 'Ничего не найдено' : 'Нет билетов'}</h4>
+            <p>{searchQuery ? 'Попробуйте изменить запрос' : 'Загляните позже, и они появятся'}</p>
           </div>
         )}
       </div>
+       {editingEvent && (
+        <EditCoverModal 
+          event={editingEvent} 
+          onClose={() => setEditingEvent(null)}
+          onSuccess={handleCoverUpdated}
+        />
+      )}
     </>
   );
+}
+
+
+
+function EditCoverModal({ event, onClose, onSuccess }: { event: Event, onClose: () => void, onSuccess: () => void }) {
+    const initDataRaw = useRawInitData();
+    const [coverUrl, setCoverUrl] = useState(event.cover_image_url || '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/admin/events/${event.id}/cover`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initDataRaw || ''
+                },
+                body: JSON.stringify({ cover_image_url: coverUrl })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || "Failed to update cover");
+            }
+            showPopup({ message: "Обложка обновлена!" });
+            onSuccess();
+        } catch (err) {
+            showPopup({ title: "Ошибка", message: (err as Error).message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    // Добавьте стили для modal-overlay и modal-content в App.css
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h3>Обложка для "{event.event_name}"</h3>
+                <form onSubmit={handleSubmit} className="form-container">
+                    <input 
+                        type="url" 
+                        placeholder="https://example.com/cover.jpg"
+                        value={coverUrl}
+                        onChange={e => setCoverUrl(e.target.value)}
+                        required
+                    />
+                    <button type="submit" className="primary-button" disabled={isSubmitting}>
+                        {isSubmitting ? "Сохранение..." : "Сохранить"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
 }
 
 function ProfileView({ user, onViewTicket }: { user: User; onViewTicket: (id: number) => void; }) {
@@ -178,7 +272,7 @@ function ProfileView({ user, onViewTicket }: { user: User; onViewTicket: (id: nu
   return (
     <>
       <h1 className="large-title">Профиль</h1>
-      <div className="list-card profile-list">
+      <div className="list-card">
         <div className="profile-row">
             <span>Имя</span>
             <span>{user.first_name}</span>
@@ -187,6 +281,12 @@ function ProfileView({ user, onViewTicket }: { user: User; onViewTicket: (id: nu
             <span>Баланс</span>
             <span>{user.balance.toFixed(2)} ₽</span>
         </div>
+        {user.held_balance && user.held_balance > 0 && (
+            <div className="profile-row">
+                <span>В ожидании</span>
+                <span>{user.held_balance.toFixed(2)} ₽</span>
+            </div>
+        )}
       </div>
       <div className="segmented-control">
         <button onClick={() => setSegment('myTickets')} className={segment === 'myTickets' ? 'active' : ''}>Мои билеты</button>
@@ -198,12 +298,9 @@ function ProfileView({ user, onViewTicket }: { user: User; onViewTicket: (id: nu
   );
 }
 
-// --- FIX IS HERE ---
-// Correctly named the prop to 'onViewTicket' to match what ProfileView passes.
 function MyTicketsList({ onViewTicket }: { onViewTicket: (id: number) => void; }) {
     const initDataRaw = useRawInitData();
     const [tickets, setTickets] = useState<Ticket[]>([]);
-
     useEffect(() => {
         if (!initDataRaw) return;
         fetch(`${BACKEND_URL}/api/users/me/tickets/purchased`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
@@ -217,10 +314,6 @@ function MyTicketsList({ onViewTicket }: { onViewTicket: (id: number) => void; }
                 <div key={ticket.id} className="list-card" onClick={() => onViewTicket(ticket.id)} style={{cursor: 'pointer'}}>
                     <h3>{ticket.event_name}</h3>
                     <p className="subtitle">{new Date(ticket.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.venue}</p>
-                    <div className="footer">
-                        <span className="price">{ticket.price.toFixed(0)} ₽</span>
-                        <span>Посмотреть</span>
-                    </div>
                 </div>
             ))}
         </div>
@@ -230,7 +323,6 @@ function MyTicketsList({ onViewTicket }: { onViewTicket: (id: number) => void; }
 function SellingTicketsList() {
     const initDataRaw = useRawInitData();
     const [tickets, setTickets] = useState<Ticket[]>([]);
-
     useEffect(() => {
         if (!initDataRaw) return;
         fetch(`${BACKEND_URL}/api/users/me/tickets/selling`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
@@ -302,7 +394,7 @@ function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event
                 <input type="text" placeholder="Найдите ваше событие" value={query} onChange={e => setQuery(e.target.value)} autoFocus />
             </div>
             <div className="list-container">
-                {loading && <p style={{textAlign: 'center', color: 'var(--ios-label-secondary)'}}>Поиск...</p>}
+                {loading && <p style={{textAlign: 'center', color: 'var(--color-text-secondary)'}}>Поиск...</p>}
                 {results.map((event, index) => (
                     <div key={index} className="list-card" onClick={() => onEventSelect(event)} style={{cursor: 'pointer'}}>
                         <h3>{event.event_name}</h3>
@@ -347,7 +439,7 @@ function CreateEventView({ onBack, onEventCreated }: { onBack: () => void, onEve
                 <input name="event_date" type="date" placeholder="Дата" required />
                 <input name="city" placeholder="Город" required />
                 <input name="venue" placeholder="Место проведения" required />
-                <button type="submit" className="apple-button">Продолжить</button>
+                <button type="submit" className="primary-button">Продолжить</button>
             </form>
         </>
     );
@@ -390,7 +482,7 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
         <>
             <div style={{display: 'flex', alignItems: 'center', margin: '16px 0'}}>
                 <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0}}><ArrowLeftIcon /></button>
-                <h1 className="large-title" style={{margin: '0 auto', paddingRight: '24px' }}>Детали</h1>
+                <h1 className="large-title" style={{margin: '0 auto', paddingRight: '24px' }}>Детали билета</h1>
             </div>
             <form onSubmit={handleSubmit} className="form-container">
                 <input type="number" step="0.01" name="price" placeholder="Цена в рублях" required />
@@ -398,7 +490,7 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
                 <input type="text" name="row" placeholder="Ряд (необязательно)" />
                 <input type="text" name="seat" placeholder="Место (необязательно)" />
                 <input type="file" name="ticket_file" required />
-                <button type="submit" className="apple-button" disabled={submitting}>
+                <button type="submit" className="primary-button" disabled={submitting}>
                     {submitting ? 'Публикация...' : 'Выставить на продажу'}
                 </button>
                 {formError && <p className="error-text">{formError}</p>}
@@ -461,9 +553,10 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
 
     useEffect(() => {
         const fetchDetails = async () => {
+            if (!initDataRaw) return;
             try {
                 const response = await fetch(`${BACKEND_URL}/api/tickets/${ticketId}/details`, {
-                    headers: { 'X-Telegram-Init-Data': initDataRaw || '' }
+                    headers: { 'X-Telegram-Init-Data': initDataRaw }
                 });
                 if (!response.ok) throw new Error('Не удалось загрузить детали билета.');
                 const data = await response.json();
@@ -487,10 +580,10 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
 
     return (
         <div className="ticket-detail-view" style={{padding: '16px'}}>
-             <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'var(--ios-blue)', fontSize: '17px', gap: '4px' }}><ArrowLeftIcon /> Профиль</button>
+             <button onClick={onBack} style={{background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'var(--color-accent-main)', fontSize: '17px', gap: '4px' }}><ArrowLeftIcon /> Профиль</button>
              <h1 className="large-title">{ticket.event_name}</h1>
              
-             <img src={ticket.temp_file_url} alt="Билет" style={{width: '100%', borderRadius: 'var(--radius)'}} />
+             <img src={ticket.temp_file_url} alt="Билет" style={{width: '100%', borderRadius: 'var(--radius-card)'}} />
 
              <div className="list-card" style={{marginTop: '24px'}}>
                 {showSeat ? (
@@ -501,7 +594,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                         <p>Место: {ticket.seat || 'N/A'}</p>
                     </div>
                 ) : (
-                    <button onClick={handleShowSeat} className="apple-button">
+                    <button onClick={handleShowSeat} className="primary-button">
                         Показать моё место
                     </button>
                 )}
