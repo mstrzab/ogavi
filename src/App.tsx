@@ -29,17 +29,26 @@ interface User {
   balance: number;
   held_balance?: number; // Optional for compatibility
 }
+
+interface Event {
+    id: number;
+    event_name: string;
+    event_date: string;
+    city: string;
+    venue: string;
+    cover_image_url?: string;
+}
+
 interface Ticket {
   id: number;
-  event_name: string;
-  event_date: string;
-  venue: string;
   price: number;
   status: 'available' | 'sold' | 'archived';
   sector?: string;
   row?: string;
   seat?: string;
+  event: Event; 
 }
+
 interface EventInfo {
   event_name: string;
   event_date: string;
@@ -51,21 +60,25 @@ interface EventInfo {
 function App() {
   const initDataRaw = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); 
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
   const [viewingTicketId, setViewingTicketId] = useState<number | null>(null);
 
-  // NEW: Expand the Mini App to full screen on initial load
-  useEffect(() => {
-    if (user) {
-        setIsAdmin(user.id === ADMIN_TELEGRAM_ID);
-      }
 
+  useEffect(() => {
     if (viewport) {
       viewport.expand();
     }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+        setIsAdmin(user.id === ADMIN_TELEGRAM_ID);
+    }
   }, [user]);
 
+  
   const fetchUser = () => {
     if (!initDataRaw) {
       console.warn("DEV MODE: No Telegram InitData. Using mock user.");
@@ -117,7 +130,7 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
   const fetchTickets = () => {
     fetch(`${BACKEND_URL}/api/tickets/`)
       .then(res => res.json())
-      .then(data => setTickets(data.map((t: any) => ({...t, price: parseFloat(t.price)}))))
+      .then(data => setTickets(data))
       .catch(console.error);
   };
   useEffect(fetchTickets, []);
@@ -165,7 +178,7 @@ function CatalogView({ isAdmin,  onPurchase }: {isAdmin: boolean;  onPurchase: (
 
   const handleCoverUpdated = () => {
     setEditingEvent(null);
-    fetchTickets(); // Обновляем список, чтобы увидеть новую обложку
+    fetchTickets();
   };
 
   return (
