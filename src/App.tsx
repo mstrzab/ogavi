@@ -473,16 +473,25 @@ function FormField({ label, name, type = "text", required = false, placeholder, 
     );
 }
 
+// viago/frontend/src/App.tsx -> ЗАМЕНИТЬ ТОЛЬКО ЭТОТ КОМПОНЕНТ
+
 function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (tab: Tab) => void }) {
-  const tabs = [
+  // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавили явную типизацию для массива tabs ***
+  const tabs: { id: Tab; label: string; icon: JSX.Element; activeIcon: JSX.Element }[] = [
     { id: 'catalog', label: 'События', icon: <HomeIcon />, activeIcon: <HomeIconFilled /> },
     { id: 'sell', label: 'Продать', icon: <PlusSquareIcon />, activeIcon: <PlusSquareIconFilled /> },
     { id: 'profile', label: 'Профиль', icon: <UserIcon />, activeIcon: <UserIconFilled /> },
   ];
+
   return (
     <div className="tab-bar">
       {tabs.map(tab => (
-        <button key={tab.id} className={`tab-button ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+        <button 
+          key={tab.id} 
+          className={`tab-button ${activeTab === tab.id ? 'active' : ''}`} 
+          // Теперь TS точно знает, что tab.id имеет тип Tab
+          onClick={() => setActiveTab(tab.id)}
+        >
           {activeTab === tab.id ? tab.activeIcon : tab.icon}
           <span>{tab.label}</span>
         </button>
@@ -490,6 +499,7 @@ function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (ta
     </div>
   );
 }
+
 
 // --- TicketDetailView (без изменений) ---
 function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void; }) {
