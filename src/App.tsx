@@ -23,8 +23,8 @@ interface EventInfo { event_name: string; event_date: string; city: string; venu
 const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => {
   // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавляем onFocus и onBlur для управления клавиатурой ***
 
-  const handleFocus = () => window.Telegram?.WebApp?.Viewport.setCustomInputAccessoryView(false);
-  const handleBlur = () => window.Telegram?.WebApp?.Viewport.setCustomInputAccessoryView(true);
+  const handleFocus = () => (viewport as any)?.setCustomInputAccessoryView(false);
+  const handleBlur = () => (viewport as any)?.setCustomInputAccessoryView(true);
 
   return (
     <div className="form-field">
@@ -286,7 +286,7 @@ function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event
     <FormPage title="Продать билет">
       <div className="search-bar">
           <SearchIcon />
-          <input type="text" placeholder="Название, город или площадка" value={query} onChange={e => setQuery(e.target.value)} onFocus={() => viewport?.setCustomInputAccessoryView(false)} onBlur={() => viewport?.setCustomInputAccessoryView(true)} />
+          <input type="text" placeholder="Название, город или площадка" value={query} onChange={e => setQuery(e.target.value)} onFocus={() => (viewport as any)?.setCustomInputAccessoryView(false)} onBlur={() => (viewport as any)?.setCustomInputAccessoryView(true)} />
       </div>
       <div className="list-container">
           {results.map((event, index) => (
