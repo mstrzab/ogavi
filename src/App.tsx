@@ -67,9 +67,7 @@ function App() {
 
 
   useEffect(() => {
-    if (viewport) {
       viewport?.expand();
-    }
   }, []);
 
   useEffect(() => {
@@ -115,7 +113,7 @@ function App() {
       <main className="page-container">
         {activeTab === 'catalog' && <CatalogView isAdmin={isAdmin} onPurchase={fetchUser} />}
         {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={() => setActiveTab('catalog')} />}
-        {activeTab === 'profile' && <ProfileView user={user} isAdmin={isAdmin} onViewTicket={setViewingTicketId} />}
+        {activeTab === 'profile' && <ProfileView user={user} isAdmin={isAdmin} onViewTicket={handleViewTicket} />}
       </main>
       <TabBar activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
