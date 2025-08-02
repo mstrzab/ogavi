@@ -460,30 +460,36 @@ function CreateEventView({ onBack, onEventCreated }: { onBack: () => void, onEve
     );
 }
 
+
 function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: EventInfo; onBack: () => void; onTicketAdded: () => void; initDataRaw: string | undefined }) {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
+    const [fileName, setFileName] = useState('');
+
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFileName(e.target.files[0].name);
+        } else {
+            setFileName('');
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!initDataRaw) {
-            setFormError("Ошибка аутентификации. Перезапустите приложение."); return;
-        }
-        setSubmitting(true);
-        setFormError('');
+        if (!initDataRaw) { setFormError("Ошибка аутентификации."); return; }
+        setSubmitting(true); setFormError('');
+
         const formData = new FormData(e.currentTarget);
         formData.append('event_name', event.event_name);
         formData.append('event_date', event.event_date);
         formData.append('city', event.city);
         formData.append('venue', event.venue);
+        
         try {
             const response = await fetch(`${BACKEND_URL}/api/tickets/`, {
                 method: 'POST', headers: { 'X-Telegram-Init-Data': initDataRaw }, body: formData,
             });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || 'Ошибка создания билета');
-            }
+            if (!response.ok) throw new Error((await response.json()).detail || 'Ошибка создания билета');
             showPopup({ message: 'Билет успешно выставлен на продажу!' });
             onTicketAdded();
         } catch (error) {
@@ -500,11 +506,26 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
                 <h1 className="large-title" style={{margin: '0 auto', paddingRight: '24px' }}>Детали билета</h1>
             </div>
             <form onSubmit={handleSubmit} className="form-container">
-                <input type="number" step="0.01" name="price" placeholder="Цена в рублях" required />
-                <input type="text" name="sector" placeholder="Сектор (необязательно)" />
-                <input type="text" name="row" placeholder="Ряд (необязательно)" />
-                <input type="text" name="seat" placeholder="Место (необязательно)" />
-                <input type="file" name="ticket_file" required />
+                <FormField label="Цена в рублях" name="price" type="number" step="1" required />
+                <FormField label="Сектор" name="sector" placeholder="А1 (необязательно)" />
+                <FormField label="Ряд" name="row" placeholder="10 (необязательно)" />
+                <FormField label="Место" name="seat" placeholder="12 (необязательно)" />
+                
+                <div className="form-field">
+                    <label>Файл билета (PDF или фото)</label>
+                    <div className="file-input-wrapper">
+                        {fileName ? (
+                            <span className="file-name">{fileName}</span>
+                        ) : (
+                            <>
+                                <UploadIcon />
+                                <p>Нажмите, чтобы загрузить</p>
+                            </>
+                        )}
+                        <input type="file" name="ticket_file" required onChange={handleFileChange} accept="image/*,application/pdf" />
+                    </div>
+                </div>
+
                 <button type="submit" className="primary-button" disabled={submitting}>
                     {submitting ? 'Публикация...' : 'Выставить на продажу'}
                 </button>
@@ -513,6 +534,8 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
         </>
     );
 }
+
+
 
 function TabBar({ activeTab, setActiveTab }: { activeTab: Tab, setActiveTab: (tab: Tab) => void }) {
   const tabs: { id: Tab; label: string; icon: JSX.Element; activeIcon: JSX.Element }[] = [
@@ -618,4 +641,30 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     );
 }
 
+interface FormFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+  step?: string;
+}
+function FormField({ label, name, type = "text", required = false, placeholder, step }: FormFieldProps) {
+    return (
+        <div className="form-field">
+            <label htmlFor={name}>{label}</label>
+            <input 
+                id={name}
+                name={name} 
+                type={type} 
+                placeholder={placeholder || ''} 
+                required={required}
+                step={step}
+            />
+        </div>
+    );
+}
+
+
 export default App;
+
