@@ -494,14 +494,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
 }
 
 
-// --- Utility & Reusable Components ---
-
-const FormField = ({ label, name, type = "text", required = false, placeholder }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string }) => (
-  <div className="form-field">
-      <label htmlFor={name}>{label}</label>
-      <input id={name} name={name} type={type} placeholder={placeholder || ''} required={required} />
-  </div>
-);
 
 const FileInput = ({ name }: { name: string }) => {
   const [fileName, setFileName] = useState('');
