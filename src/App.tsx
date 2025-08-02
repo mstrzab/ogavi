@@ -19,7 +19,7 @@ interface EventInfo { event_name: string; event_date: string; city: string; venu
 
 // --- Utility & Reusable Components (Defined First!) ---
 
-const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => (
+const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => 
   <div className="form-field">
       <label htmlFor={name}>{label}</label>
       <input 
@@ -256,6 +256,8 @@ function ProfileView({ user, isAdmin, onViewTicket }: { user: User; isAdmin: boo
   );
 }
 
+// Заменить в файле src/App.tsx
+
 function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event: EventInfo) => void, onCreateNew: () => void }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<EventInfo[]>([]);
@@ -275,7 +277,7 @@ function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event
     <FormPage title="Продать билет">
       <div className="search-bar">
           <SearchIcon />
-          <input type="text" placeholder="Название, город или площадка" value={query} onChange={e => setQuery(e.target.value)} />
+          <input type="text" placeholder="Название, город или площадка" value={query} onChange={e => setQuery(e.target.value)} onFocus={() => viewport?.setCustomInputAccessoryView(false)} onBlur={() => viewport?.setCustomInputAccessoryView(true)} />
       </div>
       <div className="list-container">
           {results.map((event, index) => (
@@ -284,6 +286,7 @@ function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event
                   <p className="subtitle">{event.venue}, {event.city}</p>
               </div>
           ))}
+          {/* *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Кнопка появляется только если поиск завершен и ничего не найдено *** */}
           {!loading && query.length > 1 && results.length === 0 && (
               <button onClick={onCreateNew} className="link-button">
                   Событие не найдено. Создать новое.
@@ -295,29 +298,41 @@ function EventSearchView({ onEventSelect, onCreateNew }: { onEventSelect: (event
 }
 
 function CreateEventView({ onBack, onEventCreated }: { onBack: () => void, onEventCreated: (event: EventInfo) => void }) {
+  // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Переводим компонент на локальное состояние ***
+  const [eventData, setEventData] = useState({
+      event_name: '',
+      event_date: '',
+      city: '',
+      venue: '',
+  });
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setEventData(prev => ({ ...prev, [name]: value }));
+  };
+  
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); const formData = new FormData(e.currentTarget);
-    const newEvent: EventInfo = {
-        event_name: formData.get('event_name') as string, event_date: formData.get('event_date') as string,
-        city: formData.get('city') as string, venue: formData.get('venue') as string,
-    };
-    if (Object.values(newEvent).some(val => !val)) {
+    e.preventDefault();
+    if (Object.values(eventData).some(val => !val)) {
         showPopup({ title: "Ошибка", message: "Пожалуйста, заполните все поля." }); return;
     }
-    onEventCreated(newEvent);
+    onEventCreated(eventData);
   };
   return (
     <FormPage title="Новое событие" onBack={onBack}>
       <form onSubmit={handleSubmit} className="form-container">
-          <FormField label="Название мероприятия" name="event_name" required />
-          <FormField label="Дата" name="event_date" type="date" required />
-          <FormField label="Город" name="city" required />
-          <FormField label="Место проведения" name="venue" required />
+          <FormField label="Название мероприятия" name="event_name" value={eventData.event_name} onChange={handleChange} required />
+          <FormField label="Дата" name="event_date" type="date" value={eventData.event_date} onChange={handleChange} required />
+          <FormField label="Город" name="city" value={eventData.city} onChange={handleChange} required />
+          <FormField label="Место проведения" name="venue" value={eventData.venue} onChange={handleChange} required />
           <button type="submit" className="primary-button">Продолжить</button>
       </form>
     </FormPage>
   );
 }
+
+
+// Заменить в файле src/App.tsx
 
 function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: EventInfo; onBack: () => void; onTicketAdded: () => void; initDataRaw: string | undefined }) {
   const [submitting, setSubmitting] = useState(false);
@@ -350,6 +365,7 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
     </FormPage>
   );
 }
+
 
 // *** ВОЗВРАЩЕННЫЙ КОМПОНЕНТ ***
 function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
