@@ -21,3 +21,5 @@ export const UserIconFilled = () => <svg {...iconProps} stroke="currentColor" fi
 // Utility Icons
 export const SearchIcon = () => <svg {...iconProps} width="20" height="20" strokeWidth="2.2" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
 export const ArrowLeftIcon = () => <svg {...iconProps} width="24" height="24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
+
+export const UploadIcon = () => <svg {...iconProps} fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>;
