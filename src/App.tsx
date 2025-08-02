@@ -22,8 +22,9 @@ interface EventInfo { event_name: string; event_date: string; city: string; venu
 
 const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => {
   // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавляем onFocus и onBlur для управления клавиатурой ***
-  const handleFocus = () => viewport?.setCustomInputAccessoryView(false);
-  const handleBlur = () => viewport?.setCustomInputAccessoryView(true);
+
+  const handleFocus = () => window.Telegram?.WebApp?.Viewport.setCustomInputAccessoryView(false);
+  const handleBlur = () => window.Telegram?.WebApp?.Viewport.setCustomInputAccessoryView(true);
 
   return (
     <div className="form-field">
