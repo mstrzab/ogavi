@@ -183,10 +183,18 @@ function EditCoverModal({ event, onClose, onSuccess }: { event: Event, onClose: 
 const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => (
   <div className="form-field">
       <label htmlFor={name}>{label}</label>
-      <input id={name} name={name} type={type} placeholder={placeholder || ''} required={required} value={value} onChange={onChange}/>
+      <input 
+        id={name} 
+        name={name} 
+        type={type} 
+        placeholder={placeholder || ''} 
+        required={required} 
+        // *** ИСПРАВЛЕНИЕ ЗДЕСЬ: Гарантируем, что value всегда строка ***
+        value={value || ''} 
+        onChange={onChange}
+      />
   </div>
 );
-
 
 function ProfileView({ user, isAdmin, onViewTicket }: { user: User; isAdmin: boolean; onViewTicket: (id: number) => void; }) {
   const [segment, setSegment] = useState<ProfileSegment>('myTickets');
