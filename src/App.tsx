@@ -18,27 +18,29 @@ interface TicketDetailsData extends Ticket { temp_file_url: string; }
 interface EventInfo { event_name: string; event_date: string; city: string; venue: string; }
 
 
-// --- Main App Component ---
+// Заменить в файле src/App.tsx
 function App() {
   const initDataRaw = useRawInitData();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
   const [viewingTicketId, setViewingTicketId] = useState<number | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // *** BUGFIX: State to trigger catalog refresh
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => { viewport?.expand(); }, []);
   
-  useEffect(() => {
+  const fetchUser = () => {
     if (!initDataRaw) return;
     fetch(`${BACKEND_URL}/api/validate_user`, { method: 'POST', headers: { 'X-Telegram-Init-Data': initDataRaw } })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .then(data => setUser({ ...data, balance: parseFloat(data.balance) }))
       .catch(() => console.error("Validation failed"));
-  }, [initDataRaw]);
+  };
+  
+  useEffect(fetchUser, [initDataRaw]);
 
   const handleFlowComplete = () => {
     setActiveTab('catalog');
-    setRefreshKey(prevKey => prevKey + 1); // *** BUGFIX: Trigger refresh
+    setRefreshKey(prevKey => prevKey + 1);
   };
 
   const handleViewTicket = (id: number) => setViewingTicketId(id);
@@ -51,7 +53,7 @@ function App() {
   return (
     <div className="app-container">
       <main className="page-container">
-        {activeTab === 'catalog' && <CatalogView isAdmin={isAdmin} refreshKey={refreshKey} />}
+        {activeTab === 'catalog' && <CatalogView isAdmin={isAdmin} refreshKey={refreshKey} onPurchase={fetchUser} />}
         {activeTab === 'sell' && <SellFlowView initDataRaw={initDataRaw} onFlowComplete={handleFlowComplete} />}
         {activeTab === 'profile' && <ProfileView user={user} isAdmin={isAdmin} onViewTicket={handleViewTicket} />}
       </main>
@@ -61,22 +63,54 @@ function App() {
 }
 
 
-// --- Screen Components ---
+// Заменить старый CatalogView и добавить EditCoverModal в src/App.tsx
 
-function CatalogView({ isAdmin, refreshKey }: { isAdmin: boolean; refreshKey: number }) {
+function CatalogView({ isAdmin, refreshKey, onPurchase }: { isAdmin: boolean; refreshKey: number; onPurchase: () => void; }) {
+  const initDataRaw = useRawInitData();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  const fetchTickets = () => {
+      setIsLoading(true);
+      fetch(`${BACKEND_URL}/api/tickets/`)
+        .then(res => res.json())
+        .then(data => setTickets(data))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+  }
 
   useEffect(() => {
-    setIsLoading(true);
-    fetch(`${BACKEND_URL}/api/tickets/`)
-      .then(res => res.json())
-      .then(data => setTickets(data))
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, [refreshKey]); // *** BUGFIX: Refetch when refreshKey changes
+    fetchTickets();
+  }, [refreshKey]);
   
+  const handleBuy = async (ticket: Ticket) => {
+    try {
+        const buttonId = await showPopup({
+            title: 'Подтверждение',
+            message: `Купить билет на "${ticket.event.event_name}" за ${ticket.price.toFixed(0)} ₽?`,
+            buttons: [ { id: 'buy', type: 'default', text: 'Купить' }, { type: 'cancel' } ],
+        });
+        if (buttonId !== 'buy') return;
+        hapticFeedback.impactOccurred('medium');
+        const response = await fetch(`${BACKEND_URL}/api/tickets/${ticket.id}/buy`, {
+            method: 'POST', headers: { 'X-Telegram-Init-Data': initDataRaw || '' },
+        });
+        if (!response.ok) throw new Error((await response.json()).detail || 'Не удалось купить билет');
+        showPopup({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
+        onPurchase(); // Обновляем баланс
+        fetchTickets(); // Обновляем список билетов
+    } catch (err) {
+        if (err instanceof Error) {
+            hapticFeedback.notificationOccurred('error');
+            showPopup({ title: 'Ошибка', message: err.message });
+        }
+    }
+  };
+  
+  const handleCoverUpdated = () => { setEditingEvent(null); fetchTickets(); };
+
   const filteredTickets = useMemo(() => tickets.filter(ticket => 
     ticket.event.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.event.venue.toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,19 +127,66 @@ function CatalogView({ isAdmin, refreshKey }: { isAdmin: boolean; refreshKey: nu
         <div className="list-container">
           {filteredTickets.length > 0 ? filteredTickets.map(ticket => (
             <div key={ticket.id} className="list-card">
+              {isAdmin && (
+                  <button onClick={() => setEditingEvent(ticket.event)} style={{float:'right', background:'none', border:'none', color:'var(--color-text-secondary)', cursor:'pointer'}}>
+                      Edit
+                  </button>
+              )}
               <h3>{ticket.event.event_name}</h3>
               <p className="subtitle">{new Date(ticket.event.event_date).toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' })} • {ticket.event.venue}</p>
               <div className="footer clearfix">
                 <span className="price">{ticket.price.toFixed(0)} ₽</span>
-                <button className="primary-button" style={{width: 'auto', padding: '12px 24px', fontSize: '16px'}}>Купить</button>
+                <button onClick={() => handleBuy(ticket)} className="primary-button" style={{width: 'auto', padding: '12px 24px', fontSize: '16px'}}>Купить</button>
               </div>
             </div>
           )) : <div className="info-card"><h4>Ничего не найдено</h4><p>Попробуйте изменить запрос или загляните позже.</p></div>}
         </div>
       )}
+      {editingEvent && <EditCoverModal event={editingEvent} onClose={() => setEditingEvent(null)} onSuccess={handleCoverUpdated} />}
     </>
   );
 }
+
+function EditCoverModal({ event, onClose, onSuccess }: { event: Event, onClose: () => void, onSuccess: () => void }) {
+    const initDataRaw = useRawInitData();
+    const [coverUrl, setCoverUrl] = useState(event.cover_image_url || '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); setIsSubmitting(true);
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/admin/events/${event.id}/cover`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initDataRaw || '' },
+                body: JSON.stringify({ cover_image_url: coverUrl })
+            });
+            if (!response.ok) throw new Error((await response.json()).detail || "Failed to update cover");
+            showPopup({ message: "Обложка обновлена!" }); onSuccess();
+        } catch (err) {
+            showPopup({ title: "Ошибка", message: (err as Error).message });
+        } finally { setIsSubmitting(false); }
+    };
+    
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h3 style={{marginTop:0}}>Обложка для "{event.event_name}"</h3>
+                <form onSubmit={handleSubmit} className="form-container">
+                    <FormField label='URL обложки' name='cover_url' type='url' value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} required />
+                    <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? "Сохранение..." : "Сохранить"}</button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+const FormField = ({ label, name, type = "text", required = false, placeholder, value, onChange }: { label:string, name:string, type?:string, required?:boolean, placeholder?:string, value?:string, onChange?:(e: ChangeEvent<HTMLInputElement>) => void }) => (
+  <div className="form-field">
+      <label htmlFor={name}>{label}</label>
+      <input id={name} name={name} type={type} placeholder={placeholder || ''} required={required} value={value} onChange={onChange}/>
+  </div>
+);
+
 
 function ProfileView({ user, isAdmin, onViewTicket }: { user: User; isAdmin: boolean; onViewTicket: (id: number) => void; }) {
   const [segment, setSegment] = useState<ProfileSegment>('myTickets');
