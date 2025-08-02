@@ -1,4 +1,4 @@
-// viago/frontend/src/App.tsx - v12.3 (Final & Corrected Order)
+// viago/frontend/src/App.tsx - v12.4 (Final & Corrected Build)
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useRawInitData, hapticFeedback, showPopup, viewport } from '@telegram-apps/sdk-react';
 import { HomeIcon, HomeIconFilled, PlusSquareIcon, PlusSquareIconFilled, UserIcon, UserIconFilled, SearchIcon, ArrowLeftIcon, UploadIcon } from './Icons';
@@ -87,7 +87,7 @@ function EditCoverModal({ event, onClose, onSuccess }: { event: Event, onClose: 
             if (!response.ok) throw new Error((await response.json()).detail || "Failed to update cover");
             showPopup({ message: "Обложка обновлена!" }); onSuccess();
         } catch (err) {
-            showPopup({ title: "Ошибка", message: (err as Error).message });
+            if (err instanceof Error) showPopup({ title: "Ошибка", message: err.message });
         } finally { setIsSubmitting(false); }
     };
     
@@ -140,9 +140,8 @@ function CatalogView({ isAdmin, onPurchase }: { isAdmin: boolean; onPurchase: ()
         showPopup({ title: 'Успешно!', message: 'Билет добавлен в ваш профиль.' });
         onPurchase(); setRefreshKey(k => k + 1);
     } catch (err) {
-        if (err instanceof Error) {
-            hapticFeedback.notificationOccurred('error'); showPopup({ title: 'Ошибка', message: err.message });
-        }
+        if (err instanceof Error) hapticFeedback.notificationOccurred('error');
+        if (err instanceof Error) showPopup({ title: 'Ошибка', message: err.message });
     }
   };
   
@@ -352,12 +351,55 @@ function AddTicketView({ event, onBack, onTicketAdded, initDataRaw }: { event: E
   );
 }
 
+// *** ВОЗВРАЩЕННЫЙ КОМПОНЕНТ ***
+function SellFlowView({ initDataRaw, onFlowComplete }: { initDataRaw: string | undefined, onFlowComplete: () => void }) {
+    const [step, setStep] = useState(1);
+    const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
+
+    const proceedToAddDetails = (event: EventInfo) => { setSelectedEvent(event); setStep(2); };
+    const proceedToCreateEvent = () => setStep(3);
+    const handleBackToSearch = () => { setStep(1); setSelectedEvent(null); };
+
+    switch (step) {
+        case 1: return <EventSearchView onEventSelect={proceedToAddDetails} onCreateNew={proceedToCreateEvent} />;
+        case 2: return <AddTicketView event={selectedEvent!} onBack={handleBackToSearch} onTicketAdded={onFlowComplete} initDataRaw={initDataRaw} />;
+        case 3: return <CreateEventView onBack={handleBackToSearch} onEventCreated={proceedToAddDetails} />;
+        default: return null;
+    }
+}
+
+
 function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void; }) {
     const initDataRaw = useRawInitData();
     const [ticket, setTicket] = useState<TicketDetailsData | null>(null);
     const [error, setError] = useState('');
     const [showSeat, setShowSeat] = useState(false);
 
+    // *** ИСПРАВЛЕННАЯ ФУНКЦИЯ ***
+    const recordVerification = async (point: 'a' | 'b') => {
+        const getBatteryLevel = async (): Promise<number | undefined> => {
+            try {
+                // @ts-ignore
+                const battery = await navigator.getBattery();
+                return Math.round(battery.level * 100);
+            } catch (e) { 
+                console.warn("Battery API not supported:", e);
+                return undefined;
+            }
+        };
+
+        const battery = await getBatteryLevel();
+        try {
+            await fetch(`${BACKEND_URL}/api/tickets/${ticketId}/verify/${point}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initDataRaw || '' },
+                body: JSON.stringify({ battery }),
+            });
+        } catch (e) {
+            console.error(`Failed to record verification point ${point}:`, e);
+        }
+    };
+    
     useEffect(() => {
         if (!initDataRaw) return;
         fetch(`${BACKEND_URL}/api/tickets/${ticketId}/details`, { headers: { 'X-Telegram-Init-Data': initDataRaw }})
@@ -366,7 +408,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
             .catch(err => setError(err.message));
     }, [ticketId, initDataRaw]);
     
-    const recordVerification = async (point: 'a' | 'b') => { /* ... (logic unchanged) ... */ };
     const handleShowSeat = () => { setShowSeat(true); recordVerification('b'); hapticFeedback.impactOccurred('heavy'); };
 
     if (error) return <FormPage title="Ошибка"><div className="info-card">{error}</div></FormPage>;
