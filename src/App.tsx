@@ -68,7 +68,7 @@ function App() {
 
   useEffect(() => {
     if (viewport) {
-      viewport.expand();
+      viewport?.expand();
     }
   }, []);
 
@@ -104,7 +104,7 @@ function App() {
   };
 
   if (error) return <div className="info-card" style={{margin: 16}}>{error}</div>;
-  if (!user) return <div className="info-card">Загрузка пользователя...</div>;
+  if (!user) return <div className="info-card">Загрузка...</div>;
   
   if (viewingTicketId) {
     return <TicketDetailView ticketId={viewingTicketId} onBack={() => setViewingTicketId(null)} />;
