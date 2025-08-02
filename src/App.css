@@ -1,23 +1,23 @@
+/* viago/frontend/src/App.css - v11.0 Aviasales Inspired */
+
 :root {
   --font-main: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Новая, яркая палитра */
-  --color-bg: #1E1D22; /* Темный, почти черный фон */
-  --color-surface: #2C2B30; /* Цвет карточек и элементов */
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #9B9A9F;
+  /* Новая палитра в стиле Aviasales */
+  --color-bg: #F0F2F5; /* Светло-серый фон */
+  --color-surface: #FFFFFF; /* Белые карточки */
+  --color-text-primary: #1F2022;
+  --color-text-secondary: #858C98;
+  --color-accent-main: #007AFF; /* Фирменный синий */
+  --color-action-green: #3DDC84;
+  --color-border: #E6E8EB;
 
-  /* Главный акцент - градиент */
-  --color-accent-main: #FFDE00; /* Яркий желтый */
-  --color-accent-gradient: linear-gradient(45deg, #FFC700 0%, #FFDE00 100%);
-  --color-accent-text: #1E1D22;
-  
   --radius-card: 20px;
   --radius-button: 16px;
-  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Принудительно устанавливаем темную тему для всего приложения */
+/* Принудительно светлая тема */
 body {
   margin: 0;
   font-family: var(--font-main);
@@ -30,34 +30,25 @@ body {
   --tg-theme-hint-color: var(--color-text-secondary);
   --tg-theme-link-color: var(--color-accent-main);
   --tg-theme-button-color: var(--color-accent-main);
-  --tg-theme-button-text-color: var(--color-accent-text);
+  --tg-theme-button-text-color: var(--color-surface);
 }
 
 /* === Layout & Typography === */
-.app-container {
-  padding-bottom: 90px;
-}
-.page-container {
-  padding: 0 16px;
-}
+.app-container { padding-bottom: 90px; }
+.page-container { padding: 0 16px; }
 .large-title {
-  font-size: 36px;
-  font-weight: 800;
+  font-size: 34px;
+  font-weight: 700;
   letter-spacing: -0.5px;
-  margin: 16px 0 20px 4px;
+  margin: 16px 0 24px 0;
 }
 
 /* === TabBar === */
 .tab-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: fixed; bottom: 0; left: 0; right: 0;
   height: 60px;
-  background-color: rgba(30, 29, 34, 0.85); /* Полупрозрачный фон */
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -66,253 +57,126 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 .tab-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: none;
-  border: none;
+  display: flex; flex-direction: column; align-items: center;
+  background: none; border: none;
   color: var(--color-text-secondary);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px; font-weight: 500;
   gap: 3px;
   transition: color 0.2s ease;
 }
-.tab-button.active {
-  color: var(--color-accent-main);
-}
+.tab-button.active { color: var(--color-accent-main); }
+.tab-button svg { stroke-width: 2; } /* Иконки чуть толще */
 
 /* === Карточки и Списки === */
-.list-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 20px;
-}
+.list-container { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
 .list-card {
   background-color: var(--color-surface);
   border-radius: var(--radius-card);
-  padding: 20px;
+  padding: 16px;
   box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease-in-out;
 }
-.list-card:active {
-  transform: scale(0.98);
-}
-.list-card h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-}
-.list-card .subtitle {
-  font-size: 16px;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
+.list-card:active { transform: scale(0.98); }
+.list-card h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
+.list-card .subtitle { font-size: 15px; color: var(--color-text-secondary); margin: 0; }
 .list-card .footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
+  display: flex; justify-content: space-between; align-items: center; margin-top: 16px;
 }
-.list-card .price {
-  font-size: 22px;
-  font-weight: 800;
-}
+.list-card .price { font-size: 20px; font-weight: 700; }
 
-/* === Кнопки и Интерактивные элементы === */
+/* === Кнопки === */
 .primary-button {
-  background-image: var(--color-accent-gradient);
-  color: var(--color-accent-text);
-  font-size: 17px;
-  font-weight: 700;
+  background-color: var(--color-accent-main);
+  color: #FFFFFF;
+  font-size: 17px; font-weight: 600;
   padding: 16px;
   border-radius: var(--radius-button);
-  border: none;
-  cursor: pointer;
-  text-align: center;
-  width: 100%;
+  border: none; cursor: pointer; text-align: center; width: 100%;
   transition: all 0.2s ease-in-out;
 }
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 4px 12px rgba(255, 222, 0, 0.3);
-}
+.primary-button:active { transform: scale(0.98); background-color: #006ae1; }
 
+/* === Поиск и Формы === */
 .search-bar {
-  display: flex;
-  align-items: center;
+  display: flex; align-items: center;
   background-color: var(--color-surface);
   border-radius: var(--radius-button);
-  padding: 0 16px;
-  gap: 12px;
-  color: var(--color-text-secondary);
+  padding: 0 16px; gap: 12px;
+  box-shadow: var(--shadow-soft);
 }
 .search-bar input {
-  flex-grow: 1;
-  background: none;
-  border: none;
-  padding: 14px 0;
-  font-size: 17px;
-  font-weight: 500;
+  flex-grow: 1; background: none; border: none;
+  padding: 16px 0;
+  font-size: 17px; font-weight: 500;
   color: var(--color-text-primary);
 }
-.search-bar input:focus {
-  outline: none;
+.search-bar input:focus { outline: none; }
+.search-bar input::placeholder { color: var(--color-text-secondary); }
+
+.form-container { display: flex; flex-direction: column; gap: 16px; }
+.form-field {
+  display: flex; flex-direction: column; gap: 8px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-button);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-soft);
 }
-.search-bar input::placeholder {
+.form-field label {
+  font-size: 13px; font-weight: 500;
   color: var(--color-text-secondary);
 }
+.form-field input {
+  background: none; border: none; padding: 0;
+  font-size: 17px; font-weight: 500;
+  color: var(--color-text-primary);
+}
+.form-field input:focus { outline: none; }
+.form-field input::placeholder { color: var(--color-text-secondary); }
 
 /* === Профиль и другие специфичные элементы === */
 .segmented-control {
-  display: flex;
-  background-color: var(--color-surface);
-  border-radius: var(--radius-button);
-  padding: 4px;
-  margin: 24px 0;
+  display: flex; background-color: #e1e4e8;
+  border-radius: 12px; padding: 3px; margin: 24px 0;
 }
 .segmented-control button {
-  flex: 1;
-  background: none;
-  border: none;
-  padding: 8px;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
+  flex: 1; background: none; border: none;
+  padding: 8px; border-radius: 10px;
+  font-size: 15px; font-weight: 600;
   color: var(--color-text-secondary);
   transition: all 0.2s ease-in-out;
 }
 .segmented-control button.active {
-  background-color: var(--color-bg);
+  background-color: var(--color-surface);
   color: var(--color-text-primary);
-}
-.profile-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 17px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--color-surface);
-}
-.profile-row:last-child { border-bottom: none; }
-.profile-row span:last-child { font-weight: 600; color: var(--color-text-secondary); }
-
-.info-card {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--color-text-secondary);
-}
-.info-card h4 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 8px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Формы */
-.form-container { display: flex; flex-direction: column; gap: 16px; }
-.form-container input {
-    background-color: var(--color-surface);
-    border: none;
-    border-radius: var(--radius-button);
-    padding: 16px;
-    font-size: 17px;
-    color: var(--color-text-primary);
+/* === Skeleton Loader === */
+.skeleton-card {
+  background-color: #fff;
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
 }
-.form-container button { margin-top: 8px; }
-.error-text { color: #ff453a; text-align: center; font-size: 15px; }
+@keyframes pulse { 0% { background-color: #e6e8eb; } 50% { background-color: #d8dbe0; } 100% { background-color: #e6e8eb; } }
+.skeleton-line {
+  height: 20px; border-radius: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+.skeleton-line.title { width: 60%; }
+.skeleton-line.subtitle { width: 40%; height: 16px; margin-bottom: 16px; }
+.skeleton-line.price { width: 30%; height: 24px; float: left; margin-bottom: 0; }
+.skeleton-line.button { width: 100px; height: 44px; float: right; margin-bottom: 0; }
+.clearfix::after { content: ""; clear: both; display: table; }
 
+/* Прочие стили */
+.info-card { text-align: center; padding: 40px 20px; color: var(--color-text-secondary); }
+.error-text { color: #ff453a; text-align: center; font-size: 15px; margin-top: 16px; }
 .link-button {
   background: none; border: none;
   color: var(--color-accent-main);
   font-size: 17px; font-weight: 500;
   cursor: pointer; padding: 16px;
-  margin-top: 8px; text-align: center;
-  width: 100%;
-}
-
-/* Добавьте в конец App.css */
-.admin-edit-btn {
-  background-color: #555;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background-color: var(--color-surface);
-  padding: 24px;
-  border-radius: var(--radius-card);
-  width: 90%;
-  max-width: 400px;
-}
-
-/* ДОБАВИТЬ В КОНЕЦ ФАЙЛА viago/frontend/src/App.css */
-
-/* === Кастомный инпут для файла === */
-.file-input-wrapper {
-  position: relative;
-  overflow: hidden;
-  display: inline-block;
-  width: 100%;
-  border-radius: var(--radius-button);
-  border: 2px dashed var(--color-surface);
-  color: var(--color-text-secondary);
-  text-align: center;
-  padding: 30px 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.file-input-wrapper:hover {
-  border-color: var(--color-accent-main);
-  color: var(--color-text-primary);
-}
-
-.file-input-wrapper input[type="file"] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.file-input-wrapper .file-name {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-
-/* === Улучшенные поля формы === */
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-field label {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  padding-left: 4px;
-}
-
-.form-field input {
-  margin: 0; /* Убираем лишние отступы */
+  margin-top: 8px; text-align: center; width: 100%;
 }
